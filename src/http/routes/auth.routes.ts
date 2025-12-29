@@ -76,4 +76,36 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send(result.value);
   });
+
+  // POST /api/auth/refresh
+  app.post('/auth/refresh', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['refreshToken'],
+        properties: {
+          refreshToken: { type: 'string' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { refreshToken } = request.body as { refreshToken: string };
+
+    const result = await container.refreshTokenHandler.execute({ refreshToken });
+
+    if (result.isFailure) {
+      return reply.status(401).send({ error: result.error });
+    }
+
+    return reply.send(result.value);
+  });
 }

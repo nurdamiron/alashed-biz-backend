@@ -46,4 +46,18 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
     const result = await c.getStockLogsHandler.execute({ productId: id });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });
+
+  // Приемка товара от поставщика
+  app.post('/inventory/receive', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const { productId, quantity, supplierId, documentNumber, notes } = req.body as any;
+    const result = await c.receiveGoodsHandler.execute({
+      productId,
+      quantity,
+      supplierId,
+      documentNumber,
+      notes,
+      userId: req.user?.userId,
+    });
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send({ success: true });
+  });
 }

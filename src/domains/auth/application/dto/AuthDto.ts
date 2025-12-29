@@ -22,3 +22,12 @@ export interface TokenPayload {
   email: string;
   role: string;
 }
+
+export interface RefreshTokenRequestDto {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponseDto {
+  accessToken: string;
+  refreshToken: string;
+}

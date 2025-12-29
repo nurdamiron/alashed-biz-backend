@@ -5,8 +5,12 @@ import { tasksRoutes } from './tasks.routes.js';
 import { inventoryRoutes } from './inventory.routes.js';
 import { analyticsRoutes } from './analytics.routes.js';
 import { staffRoutes } from './staff.routes.js';
+import { employeesRoutes } from './employees.routes.js';
 import { notificationsRoutes } from './notifications.routes.js';
 import { aiRoutes } from './ai.routes.js';
+import { suppliersRoutes } from './suppliers.routes.js';
+import { fiscalRoutes } from './fiscal.routes.js';
+import { websocketRoutes } from './websocket.routes.js';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Health check
@@ -28,8 +32,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(ordersRoutes);
   await app.register(tasksRoutes);
   await app.register(inventoryRoutes);
+  await app.register(suppliersRoutes);
+  await app.register(fiscalRoutes);
   await app.register(analyticsRoutes);
-  await app.register(staffRoutes);
+  await app.register(staffRoutes); // Legacy
+  await app.register(employeesRoutes); // New CRUD API
   await app.register(notificationsRoutes);
   await app.register(aiRoutes);
+  await app.register(websocketRoutes); // WebSocket for real-time updates
 }

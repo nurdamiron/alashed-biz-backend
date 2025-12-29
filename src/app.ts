@@ -1,6 +1,7 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { config } from './config/index.js';
@@ -23,6 +24,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   // JWT
   await app.register(jwt, {
     secret: config.jwt.secret,
+  });
+
+  // WebSocket
+  await app.register(websocket, {
+    options: {
+      maxPayload: 1048576, // 1MB
+    },
   });
 
   // Swagger / OpenAPI

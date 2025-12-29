@@ -7,22 +7,25 @@ import { StockLog } from '../../domain/entities/StockLog.js';
 export class PostgresProductRepository implements IProductRepository {
   async findById(id: ProductId): Promise<Product | null> {
     const result = await query(
-      `SELECT p.*, c.name as category_name, b.name as brand_name, u.abbreviation as unit_name
+      `SELECT p.*, c.name as category_name, b.name as brand_name, u.abbreviation as unit_name, s.name as supplier_name
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN brands b ON p.brand_id = b.id
        LEFT JOIN units_of_measurement u ON p.unit_id = u.id
+       LEFT JOIN suppliers s ON p.supplier_id = s.id
        WHERE p.id = $1`, [id.value]
     );
     return result.rows.length ? Product.fromPersistence(result.rows[0]) : null;
   }
 
   async findAll(filters?: ProductFilters, pagination?: PaginationParams): Promise<Product[]> {
-    let sql = `SELECT p.*, c.name as category_name, b.name as brand_name, u.abbreviation as unit_name
+    let sql = `SELECT p.*, c.name as category_name, b.name as brand_name, u.abbreviation as unit_name, s.name as supplier_name
                FROM products p
                LEFT JOIN categories c ON p.category_id = c.id
                LEFT JOIN brands b ON p.brand_id = b.id
-               LEFT JOIN units_of_measurement u ON p.unit_id = u.id WHERE 1=1`;
+               LEFT JOIN units_of_measurement u ON p.unit_id = u.id
+               LEFT JOIN suppliers s ON p.supplier_id = s.id
+               WHERE 1=1`;
     const params: any[] = [];
     let idx = 1;
 
@@ -49,9 +52,12 @@ export class PostgresProductRepository implements IProductRepository {
 
   async search(searchQuery: string): Promise<Product[]> {
     const result = await query(
-      `SELECT p.*, c.name as category_name, b.name as brand_name
-       FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id
-       WHERE p.name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1 OR c.name ILIKE $1
+      `SELECT p.*, c.name as category_name, b.name as brand_name, s.name as supplier_name
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       LEFT JOIN brands b ON p.brand_id = b.id
+       LEFT JOIN suppliers s ON p.supplier_id = s.id
+       WHERE p.name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1 OR p.gtin ILIKE $1 OR c.name ILIKE $1
        ORDER BY p.name ASC LIMIT 50`, [`%${searchQuery}%`]
     );
     return result.rows.map(row => Product.fromPersistence(row));
@@ -59,11 +65,11 @@ export class PostgresProductRepository implements IProductRepository {
 
   async save(product: Product): Promise<Product> {
     const result = await query(
-      `INSERT INTO products (name, sku, description, category_id, brand_id, unit_id, price, cost_price, quantity, min_stock_level, barcode, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-      [product.name, product.sku?.value, product.description, product.categoryId, product.brandId, product.unitId,
+      `INSERT INTO products (name, sku, description, category_id, brand_id, supplier_id, unit_id, price, cost_price, quantity, min_stock_level, barcode, gtin, serial_numbers, images, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
+      [product.name, product.sku?.value, product.description, product.categoryId, product.brandId, product.supplierId, product.unitId,
        product.price.amount, product.costPrice?.amount, product.quantity.value, product.minStockLevel,
-       product.barcode, product.isActive, product.createdAt, product.updatedAt]
+       product.barcode, product.gtin, product.serialNumbers, product.images, product.isActive, product.createdAt, product.updatedAt]
     );
     product.setId(ProductId.create(result.rows[0].id));
     return product;
@@ -71,9 +77,9 @@ export class PostgresProductRepository implements IProductRepository {
 
   async update(product: Product): Promise<void> {
     await query(
-      `UPDATE products SET name=$1, description=$2, price=$3, cost_price=$4, min_stock_level=$5, barcode=$6, category_id=$7, brand_id=$8, updated_at=$9 WHERE id=$10`,
+      `UPDATE products SET name=$1, description=$2, price=$3, cost_price=$4, min_stock_level=$5, barcode=$6, gtin=$7, category_id=$8, brand_id=$9, supplier_id=$10, updated_at=$11 WHERE id=$12`,
       [product.name, product.description, product.price.amount, product.costPrice?.amount, product.minStockLevel,
-       product.barcode, product.categoryId, product.brandId, product.updatedAt, product.id?.value]
+       product.barcode, product.gtin, product.categoryId, product.brandId, product.supplierId, product.updatedAt, product.id?.value]
     );
   }
 

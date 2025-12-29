@@ -45,6 +45,14 @@ export const config = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
   },
+
+  // Webkassa (Фискализация РК)
+  webkassa: {
+    apiUrl: process.env.WEBKASSA_API_URL || 'https://devkkm.webkassa.kz/api',
+    token: process.env.WEBKASSA_TOKEN,
+    cashboxId: process.env.WEBKASSA_CASHBOX_ID,
+    testMode: process.env.WEBKASSA_TEST_MODE !== 'false',
+  },
 } as const;
 
 // Validate required config

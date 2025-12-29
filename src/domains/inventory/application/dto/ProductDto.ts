@@ -6,20 +6,23 @@ export interface StockLogDto {
 export interface ProductDto {
   id: number; name: string; sku?: string; description?: string;
   categoryId?: number; categoryName?: string; brandId?: number; brandName?: string;
+  supplierId?: number; supplierName?: string;
   unitId?: number; unitName?: string; price: number; costPrice?: number;
-  quantity: number; minStockLevel: number; barcode?: string;
+  quantity: number; minStockLevel: number; barcode?: string; gtin?: string;
+  serialNumbers?: string[];
   isActive: boolean; isLowStock: boolean; isOutOfStock: boolean;
   images: string[]; createdAt: string; updatedAt: string;
 }
 
 export interface CreateProductDto {
   name: string; sku?: string; description?: string; categoryId?: number; brandId?: number;
-  unitId?: number; price: number; costPrice?: number; quantity?: number; minStockLevel?: number; barcode?: string;
+  supplierId?: number; unitId?: number; price: number; costPrice?: number; quantity?: number;
+  minStockLevel?: number; barcode?: string; gtin?: string; serialNumbers?: string[];
 }
 
 export interface UpdateProductDto {
   productId: number; name?: string; description?: string; price?: number; costPrice?: number;
-  minStockLevel?: number; barcode?: string; categoryId?: number; brandId?: number;
+  minStockLevel?: number; barcode?: string; gtin?: string; categoryId?: number; brandId?: number; supplierId?: number;
 }
 
 export interface AdjustStockDto { productId: number; delta: number; reason?: string; userId?: number; }

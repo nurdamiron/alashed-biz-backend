@@ -50,6 +50,7 @@ export interface UpdateOrderStatusDto {
   orderId: number;
   status: string;
   note?: string;
+  cashierId?: number; // Для автоматической фискализации при delivered
 }
 
 export interface OrdersListDto {

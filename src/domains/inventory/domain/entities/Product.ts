@@ -15,6 +15,8 @@ export interface ProductProps {
   categoryName?: string;
   brandId?: number;
   brandName?: string;
+  supplierId?: number;
+  supplierName?: string;
   unitId?: number;
   unitName?: string;
   price: Money;
@@ -22,6 +24,8 @@ export interface ProductProps {
   quantity: Quantity;
   minStockLevel: number;
   barcode?: string;
+  gtin?: string;
+  serialNumbers?: string[];
   isActive: boolean;
   images?: string[];
   createdAt: Date;
@@ -39,11 +43,15 @@ export class Product extends AggregateRoot<ProductProps> {
   get brandName(): string | undefined { return this.props.brandName; }
   get unitId(): number | undefined { return this.props.unitId; }
   get unitName(): string | undefined { return this.props.unitName; }
+  get supplierId(): number | undefined { return this.props.supplierId; }
+  get supplierName(): string | undefined { return this.props.supplierName; }
   get price(): Money { return this.props.price; }
   get costPrice(): Money | undefined { return this.props.costPrice; }
   get quantity(): Quantity { return this.props.quantity; }
   get minStockLevel(): number { return this.props.minStockLevel; }
   get barcode(): string | undefined { return this.props.barcode; }
+  get gtin(): string | undefined { return this.props.gtin; }
+  get serialNumbers(): string[] { return this.props.serialNumbers || []; }
   get isActive(): boolean { return this.props.isActive; }
   get images(): string[] { return this.props.images || []; }
   get createdAt(): Date { return this.props.createdAt; }
@@ -75,6 +83,8 @@ export class Product extends AggregateRoot<ProductProps> {
       categoryName: row.category_name,
       brandId: row.brand_id,
       brandName: row.brand_name,
+      supplierId: row.supplier_id,
+      supplierName: row.supplier_name,
       unitId: row.unit_id,
       unitName: row.unit_name || row.unit_abbreviation,
       price: Money.create(parseFloat(row.price || 0)),
@@ -82,6 +92,8 @@ export class Product extends AggregateRoot<ProductProps> {
       quantity: Quantity.create(parseInt(row.quantity || 0)),
       minStockLevel: parseInt(row.min_stock_level || 5),
       barcode: row.barcode,
+      gtin: row.gtin,
+      serialNumbers: row.serial_numbers || [],
       isActive: row.is_active !== false,
       images: row.images || [],
       createdAt: new Date(row.created_at),
@@ -104,7 +116,7 @@ export class Product extends AggregateRoot<ProductProps> {
     });
   }
 
-  public update(props: Partial<Pick<ProductProps, 'name' | 'description' | 'price' | 'costPrice' | 'minStockLevel' | 'barcode' | 'categoryId' | 'brandId'>>): void {
+  public update(props: Partial<Pick<ProductProps, 'name' | 'description' | 'price' | 'costPrice' | 'minStockLevel' | 'barcode' | 'gtin' | 'categoryId' | 'brandId' | 'supplierId'>>): void {
     Object.assign(this.props, props);
     this.props.updatedAt = new Date();
   }

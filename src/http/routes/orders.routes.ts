@@ -152,17 +152,53 @@ export async function ordersRoutes(app: FastifyInstance): Promise<void> {
         properties: {
           status: { type: 'string' },
           note: { type: 'string' },
+          cashierId: { type: 'integer' },
         },
       },
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: number };
-    const { status, note } = request.body as { status: string; note?: string };
+    const { status, note, cashierId } = request.body as { status: string; note?: string; cashierId?: number };
 
     const result = await container.updateOrderStatusHandler.execute({
       orderId: id,
       status,
       note,
+      cashierId,
+    });
+
+    if (result.isFailure) {
+      return reply.status(400).send({ error: result.error });
+    }
+
+    return reply.send(result.value);
+  });
+
+  // POST /api/orders/:id/cancel
+  app.post('/orders/:id/cancel', {
+    preHandler: [authMiddleware],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'integer' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          reason: { type: 'string' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const { reason } = request.body as { reason?: string };
+
+    const result = await container.cancelOrderHandler.execute({
+      orderId: id,
+      reason,
     });
 
     if (result.isFailure) {

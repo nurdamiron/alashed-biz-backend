@@ -7,9 +7,13 @@ export class ProductMapper {
     return {
       id: product.id?.value ?? 0, name: product.name, sku: product.sku?.value,
       description: product.description, categoryId: product.categoryId, categoryName: product.categoryName,
-      brandId: product.brandId, brandName: product.brandName, unitId: product.unitId, unitName: product.unitName,
+      brandId: product.brandId, brandName: product.brandName,
+      supplierId: product.supplierId, supplierName: product.supplierName,
+      unitId: product.unitId, unitName: product.unitName,
       price: product.price.amount, costPrice: product.costPrice?.amount, quantity: product.quantity.value,
-      minStockLevel: product.minStockLevel, barcode: product.barcode, isActive: product.isActive,
+      minStockLevel: product.minStockLevel, barcode: product.barcode, gtin: product.gtin,
+      serialNumbers: product.serialNumbers,
+      isActive: product.isActive,
       isLowStock: product.isLowStock, isOutOfStock: product.isOutOfStock, images: product.images,
       createdAt: product.createdAt.toISOString(), updatedAt: product.updatedAt.toISOString(),
     };
