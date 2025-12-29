@@ -150,6 +150,13 @@ export class PostgresTaskRepository implements ITaskRepository {
     );
   }
 
+  async delete(id: TaskId): Promise<void> {
+    // First delete associated comments
+    await query(`DELETE FROM task_comments WHERE task_id = $1`, [id.value]);
+    // Then delete the task
+    await query(`DELETE FROM tasks WHERE id = $1`, [id.value]);
+  }
+
   async addComment(taskId: TaskId, comment: TaskComment): Promise<TaskComment> {
     const result = await query(
       `INSERT INTO task_comments (task_id, user_id, comment, created_at)

@@ -21,6 +21,7 @@ import { GetTaskByIdHandler } from '../domains/tasks/application/handlers/GetTas
 import { UpdateTaskHandler } from '../domains/tasks/application/handlers/UpdateTaskHandler.js';
 import { UpdateTaskStatusHandler } from '../domains/tasks/application/handlers/UpdateTaskStatusHandler.js';
 import { AddTaskCommentHandler } from '../domains/tasks/application/handlers/AddTaskCommentHandler.js';
+import { DeleteTaskHandler } from '../domains/tasks/application/handlers/DeleteTaskHandler.js';
 
 // Inventory
 import { PostgresProductRepository } from '../domains/inventory/infrastructure/repositories/PostgresProductRepository.js';
@@ -30,6 +31,8 @@ import { SearchProductsHandler } from '../domains/inventory/application/handlers
 import { UpdateProductHandler } from '../domains/inventory/application/handlers/UpdateProductHandler.js';
 import { AdjustStockHandler } from '../domains/inventory/application/handlers/AdjustStockHandler.js';
 import { GetStockLogsHandler } from '../domains/inventory/application/handlers/GetStockLogsHandler.js';
+import { CreateProductHandler } from '../domains/inventory/application/handlers/CreateProductHandler.js';
+import { DeleteProductHandler } from '../domains/inventory/application/handlers/DeleteProductHandler.js';
 
 // Analytics
 import { GetDashboardStatsHandler } from '../domains/analytics/application/handlers/GetDashboardStatsHandler.js';
@@ -105,13 +108,16 @@ export interface Container {
   updateTaskHandler: UpdateTaskHandler;
   updateTaskStatusHandler: UpdateTaskStatusHandler;
   addTaskCommentHandler: AddTaskCommentHandler;
+  deleteTaskHandler: DeleteTaskHandler;
 
   // Inventory
   productRepository: PostgresProductRepository;
   getProductsHandler: GetProductsHandler;
   getProductByIdHandler: GetProductByIdHandler;
   searchProductsHandler: SearchProductsHandler;
+  createProductHandler: CreateProductHandler;
   updateProductHandler: UpdateProductHandler;
+  deleteProductHandler: DeleteProductHandler;
   adjustStockHandler: AdjustStockHandler;
   getStockLogsHandler: GetStockLogsHandler;
   receiveGoodsHandler: ReceiveGoodsHandler;
@@ -221,12 +227,15 @@ export function initContainer(): Container {
   const updateTaskHandler = new UpdateTaskHandler(taskRepository);
   const updateTaskStatusHandler = new UpdateTaskStatusHandler(taskRepository);
   const addTaskCommentHandler = new AddTaskCommentHandler(taskRepository);
+  const deleteTaskHandler = new DeleteTaskHandler(taskRepository);
 
   // ==================== Inventory Handlers ====================
   const getProductsHandler = new GetProductsHandler(productRepository);
   const getProductByIdHandler = new GetProductByIdHandler(productRepository);
   const searchProductsHandler = new SearchProductsHandler(productRepository);
+  const createProductHandler = new CreateProductHandler(productRepository);
   const updateProductHandler = new UpdateProductHandler(productRepository);
+  const deleteProductHandler = new DeleteProductHandler(productRepository);
   const adjustStockHandler = new AdjustStockHandler(productRepository);
   const getStockLogsHandler = new GetStockLogsHandler(productRepository);
   const receiveGoodsHandler = new ReceiveGoodsHandler(productRepository);
@@ -286,13 +295,16 @@ export function initContainer(): Container {
     updateTaskHandler,
     updateTaskStatusHandler,
     addTaskCommentHandler,
+    deleteTaskHandler,
 
     // Inventory
     productRepository,
     getProductsHandler,
     getProductByIdHandler,
     searchProductsHandler,
+    createProductHandler,
     updateProductHandler,
+    deleteProductHandler,
     adjustStockHandler,
     getStockLogsHandler,
     receiveGoodsHandler,

@@ -22,10 +22,21 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });
 
+  app.post('/inventory', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const result = await c.createProductHandler.execute(req.body as any);
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.status(201).send(result.value);
+  });
+
   app.get('/inventory/:id', { preHandler: [authMiddleware] }, async (req, reply) => {
     const { id } = req.params as { id: number };
     const result = await c.getProductByIdHandler.execute({ productId: id });
     return result.isFailure ? reply.status(404).send({ error: result.error }) : reply.send(result.value);
+  });
+
+  app.delete('/inventory/:id', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+    const result = await c.deleteProductHandler.execute({ productId: id });
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send({ success: true });
   });
 
   app.put('/inventory/:id', { preHandler: [authMiddleware] }, async (req, reply) => {

@@ -39,8 +39,8 @@ export class LinkUserToEmployeeHandler implements UseCase<LinkUserToEmployeeRequ
       employee.setUserId(request.userId);
       await this.employeeRepository.update(employee);
 
-      // TODO: Обновить user.employeeId в UserRepository
-      // Сейчас IUserRepository не имеет метода update, нужно добавить
+      // Note: User.employeeId is derived from the JOIN with employees table (employees.user_id)
+      // so no separate update is needed on the users table
 
       return Result.ok(undefined);
     } catch (error) {

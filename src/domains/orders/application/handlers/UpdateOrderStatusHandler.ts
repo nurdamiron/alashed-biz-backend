@@ -50,9 +50,10 @@ export class UpdateOrderStatusHandler implements UseCase<UpdateOrderStatusDto, O
         }
 
         // Автоматически создать фискальный чек
+        // Use provided cashierId, or fall back to order's employeeId, or default to 1
         const fiscalResult = await this.createFiscalReceiptHandler.execute({
           orderId: request.orderId,
-          cashierId: request.cashierId || 1, // TODO: получать из context
+          cashierId: request.cashierId || order.employeeId?.getValue() || 1,
         });
 
         if (fiscalResult.isFailure) {

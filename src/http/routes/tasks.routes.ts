@@ -31,6 +31,12 @@ export async function tasksRoutes(app: FastifyInstance): Promise<void> {
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });
 
+  app.delete('/tasks/:id', { preHandler: [authMiddleware] }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const result = await container.deleteTaskHandler.execute({ taskId: id });
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send({ success: true });
+  });
+
   app.put('/tasks/:id/status', { preHandler: [authMiddleware] }, async (request, reply) => {
     const { id } = request.params as { id: number };
     const { status } = request.body as { status: string };

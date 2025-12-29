@@ -21,6 +21,7 @@ export interface ITaskRepository {
   save(task: Task): Promise<Task>;
   update(task: Task): Promise<void>;
   updateStatus(id: TaskId, status: TaskStatus): Promise<void>;
+  delete(id: TaskId): Promise<void>;
   addComment(taskId: TaskId, comment: TaskComment): Promise<TaskComment>;
   count(filters?: TaskFilters): Promise<number>;
   countByAssignee(assigneeId: number): Promise<number>;

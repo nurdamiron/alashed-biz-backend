@@ -116,8 +116,13 @@ export class Product extends AggregateRoot<ProductProps> {
     });
   }
 
-  public update(props: Partial<Pick<ProductProps, 'name' | 'description' | 'price' | 'costPrice' | 'minStockLevel' | 'barcode' | 'gtin' | 'categoryId' | 'brandId' | 'supplierId'>>): void {
+  public update(props: Partial<Pick<ProductProps, 'name' | 'description' | 'price' | 'costPrice' | 'minStockLevel' | 'barcode' | 'gtin' | 'categoryId' | 'brandId' | 'supplierId' | 'isActive'>>): void {
     Object.assign(this.props, props);
+    this.props.updatedAt = new Date();
+  }
+
+  public deactivate(): void {
+    this.props.isActive = false;
     this.props.updatedAt = new Date();
   }
 
