@@ -82,6 +82,9 @@ import { ReceiveGoodsHandler } from '../domains/inventory/application/handlers/R
 import { ReserveStockHandler } from '../domains/inventory/application/handlers/ReserveStockHandler.js';
 import { ReleaseStockHandler } from '../domains/inventory/application/handlers/ReleaseStockHandler.js';
 import { CompleteStockReservationHandler } from '../domains/inventory/application/handlers/CompleteStockReservationHandler.js';
+import { GetWarehouseLocationsHandler } from '../domains/inventory/application/handlers/GetWarehouseLocationsHandler.js';
+import { CreateWarehouseLocationHandler } from '../domains/inventory/application/handlers/CreateWarehouseLocationHandler.js';
+import { GetProductLocationsHandler } from '../domains/inventory/application/handlers/GetProductLocationsHandler.js';
 
 // DI Container Interface
 export interface Container {
@@ -124,6 +127,9 @@ export interface Container {
   reserveStockHandler: ReserveStockHandler;
   releaseStockHandler: ReleaseStockHandler;
   completeStockReservationHandler: CompleteStockReservationHandler;
+  getWarehouseLocationsHandler: GetWarehouseLocationsHandler;
+  createWarehouseLocationHandler: CreateWarehouseLocationHandler;
+  getProductLocationsHandler: GetProductLocationsHandler;
 
   // Analytics
   getDashboardStatsHandler: GetDashboardStatsHandler;
@@ -239,6 +245,9 @@ export function initContainer(): Container {
   const adjustStockHandler = new AdjustStockHandler(productRepository);
   const getStockLogsHandler = new GetStockLogsHandler(productRepository);
   const receiveGoodsHandler = new ReceiveGoodsHandler(productRepository);
+  const getWarehouseLocationsHandler = new GetWarehouseLocationsHandler();
+  const createWarehouseLocationHandler = new CreateWarehouseLocationHandler();
+  const getProductLocationsHandler = new GetProductLocationsHandler();
 
   // ==================== Analytics Handlers ====================
   const getDashboardStatsHandler = new GetDashboardStatsHandler();
@@ -311,6 +320,9 @@ export function initContainer(): Container {
     reserveStockHandler,
     releaseStockHandler,
     completeStockReservationHandler,
+    getWarehouseLocationsHandler,
+    createWarehouseLocationHandler,
+    getProductLocationsHandler,
 
     // Analytics
     getDashboardStatsHandler,

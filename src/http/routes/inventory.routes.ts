@@ -71,4 +71,28 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
     });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send({ success: true });
   });
+
+  // ==================== Warehouse Locations ====================
+
+  // Получить все локации склада
+  app.get('/warehouse/locations', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const { isActive } = req.query as { isActive?: string };
+    const result = await c.getWarehouseLocationsHandler.execute({
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+    });
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
+  });
+
+  // Создать новую локацию
+  app.post('/warehouse/locations', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const result = await c.createWarehouseLocationHandler.execute(req.body as any);
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.status(201).send(result.value);
+  });
+
+  // Получить локации товара
+  app.get('/inventory/:id/locations', { preHandler: [authMiddleware] }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+    const result = await c.getProductLocationsHandler.execute({ productId: id });
+    return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
+  });
 }
