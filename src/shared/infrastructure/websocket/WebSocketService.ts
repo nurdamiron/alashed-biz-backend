@@ -30,6 +30,7 @@ export class WebSocketService {
     let sentCount = 0;
 
     this.clients.forEach((client) => {
+      if (!client || !client.socket) return;
       if (client.socket.readyState === WebSocket.OPEN) {
         try {
           client.socket.send(message);
@@ -48,6 +49,7 @@ export class WebSocketService {
     let sentCount = 0;
 
     this.clients.forEach((client) => {
+      if (!client || !client.socket) return;
       if (client.userId === userId && client.socket.readyState === WebSocket.OPEN) {
         try {
           client.socket.send(message);
@@ -66,6 +68,7 @@ export class WebSocketService {
     let sentCount = 0;
 
     this.clients.forEach((client) => {
+      if (!client || !client.socket) return;
       if (client.role === role && client.socket.readyState === WebSocket.OPEN) {
         try {
           client.socket.send(message);

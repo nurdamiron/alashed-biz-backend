@@ -10,7 +10,8 @@ export async function websocketRoutes(app: FastifyInstance): Promise<void> {
   const c = getContainer();
 
   app.get('/ws', { websocket: true }, async (connection, req) => {
-    const { socket } = connection;
+    // Handle both old and new @fastify/websocket API
+    const socket = (connection as any).socket || connection;
 
     try {
       // Extract token from query parameter or headers
