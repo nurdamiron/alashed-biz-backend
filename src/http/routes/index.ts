@@ -27,17 +27,21 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     docs: '/docs',
   }));
 
-  // Register all domain routes
-  await app.register(authRoutes);
-  await app.register(ordersRoutes);
-  await app.register(tasksRoutes);
-  await app.register(inventoryRoutes);
-  await app.register(suppliersRoutes);
-  await app.register(fiscalRoutes);
-  await app.register(analyticsRoutes);
-  await app.register(staffRoutes); // Legacy
-  await app.register(employeesRoutes); // New CRUD API
-  await app.register(notificationsRoutes);
-  await app.register(aiRoutes);
-  await app.register(websocketRoutes); // WebSocket for real-time updates
+  // Register all domain routes with /api prefix
+  await app.register(async (api) => {
+    await api.register(authRoutes);
+    await api.register(ordersRoutes);
+    await api.register(tasksRoutes);
+    await api.register(inventoryRoutes);
+    await api.register(suppliersRoutes);
+    await api.register(fiscalRoutes);
+    await api.register(analyticsRoutes);
+    await api.register(staffRoutes); // Legacy
+    await api.register(employeesRoutes); // New CRUD API
+    await api.register(notificationsRoutes);
+    await api.register(aiRoutes);
+  }, { prefix: '/api' });
+
+  // WebSocket (without /api prefix)
+  await app.register(websocketRoutes);
 }

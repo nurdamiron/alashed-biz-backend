@@ -5,15 +5,16 @@ let pool: Pool | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
+    const sslConfig = config.database.ssl ? { rejectUnauthorized: false } : false;
     const connectionConfig = config.database.url
-      ? { connectionString: config.database.url, ssl: { rejectUnauthorized: false } }
+      ? { connectionString: config.database.url, ssl: sslConfig }
       : {
           host: config.database.host,
           port: config.database.port,
           database: config.database.name,
           user: config.database.user,
           password: config.database.password,
-          ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
+          ssl: sslConfig,
         };
 
     pool = new Pool({
