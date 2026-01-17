@@ -12,7 +12,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         type: 'object',
         required: ['email', 'password'],
         properties: {
-          email: { type: 'string', format: 'email' },
+          email: { type: 'string', minLength: 1 },
           password: { type: 'string', minLength: 1 },
         },
       },
@@ -107,5 +107,39 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     return reply.send(result.value);
+  });
+
+  // PUT /api/auth/preferences
+  app.put('/auth/preferences', {
+    preHandler: [authMiddleware],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          theme: { type: 'string', enum: ['light', 'dark'] },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { theme } = request.body as { theme?: 'light' | 'dark' };
+
+    const result = await container.updateUserPreferencesHandler.execute({
+      userId: request.user!.userId,
+      theme,
+    });
+
+    if (result.isFailure) {
+      return reply.status(400).send({ error: result.error });
+    }
+
+    return reply.send({ success: true });
   });
 }

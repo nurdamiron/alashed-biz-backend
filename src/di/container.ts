@@ -3,6 +3,7 @@ import { PostgresUserRepository } from '../domains/auth/infrastructure/repositor
 import { LoginHandler } from '../domains/auth/application/handlers/LoginHandler.js';
 import { GetCurrentUserHandler } from '../domains/auth/application/handlers/GetCurrentUserHandler.js';
 import { RefreshTokenHandler } from '../domains/auth/application/handlers/RefreshTokenHandler.js';
+import { UpdateUserPreferencesHandler } from '../domains/auth/application/handlers/UpdateUserPreferencesHandler.js';
 
 // Orders
 import { PostgresOrderRepository } from '../domains/orders/infrastructure/repositories/PostgresOrderRepository.js';
@@ -93,6 +94,7 @@ export interface Container {
   loginHandler: LoginHandler;
   getCurrentUserHandler: GetCurrentUserHandler;
   refreshTokenHandler: RefreshTokenHandler;
+  updateUserPreferencesHandler: UpdateUserPreferencesHandler;
 
   // Orders
   orderRepository: PostgresOrderRepository;
@@ -203,6 +205,7 @@ export function initContainer(): Container {
   const loginHandler = new LoginHandler(userRepository);
   const getCurrentUserHandler = new GetCurrentUserHandler(userRepository);
   const refreshTokenHandler = new RefreshTokenHandler(userRepository);
+  const updateUserPreferencesHandler = new UpdateUserPreferencesHandler();
 
   // ==================== Inventory Stock Handlers (должны быть перед Orders) ====================
   const reserveStockHandler = new ReserveStockHandler(notificationService);
@@ -286,6 +289,7 @@ export function initContainer(): Container {
     loginHandler,
     getCurrentUserHandler,
     refreshTokenHandler,
+    updateUserPreferencesHandler,
 
     // Orders
     orderRepository,

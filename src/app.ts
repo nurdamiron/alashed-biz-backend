@@ -4,6 +4,9 @@ import jwt from '@fastify/jwt';
 import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
 import { config } from './config/index.js';
 import { registerRoutes } from './http/routes/index.js';
 import { initContainer } from './di/container.js';
@@ -31,6 +34,19 @@ export async function buildApp(): Promise<FastifyInstance> {
     options: {
       maxPayload: 1048576, // 1MB
     },
+  });
+
+  // Multipart (File Uploads)
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+  });
+
+  // Static files (Serve uploads)
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), 'uploads'),
+    prefix: '/uploads/',
   });
 
   // Swagger / OpenAPI

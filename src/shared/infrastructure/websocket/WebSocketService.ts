@@ -1,5 +1,8 @@
 import { WebSocket } from '@fastify/websocket';
 
+// WebSocket ready state constants
+const WS_OPEN = 1;
+
 export interface WebSocketClient {
   socket: WebSocket;
   userId: number;
@@ -31,7 +34,7 @@ export class WebSocketService {
 
     this.clients.forEach((client) => {
       if (!client || !client.socket) return;
-      if (client.socket.readyState === WebSocket.OPEN) {
+      if (client.socket.readyState === WS_OPEN) {
         try {
           client.socket.send(message);
           sentCount++;
@@ -50,7 +53,7 @@ export class WebSocketService {
 
     this.clients.forEach((client) => {
       if (!client || !client.socket) return;
-      if (client.userId === userId && client.socket.readyState === WebSocket.OPEN) {
+      if (client.userId === userId && client.socket.readyState === WS_OPEN) {
         try {
           client.socket.send(message);
           sentCount++;
@@ -69,7 +72,7 @@ export class WebSocketService {
 
     this.clients.forEach((client) => {
       if (!client || !client.socket) return;
-      if (client.role === role && client.socket.readyState === WebSocket.OPEN) {
+      if (client.role === role && client.socket.readyState === WS_OPEN) {
         try {
           client.socket.send(message);
           sentCount++;

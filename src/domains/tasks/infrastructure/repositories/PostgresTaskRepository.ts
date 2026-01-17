@@ -103,9 +103,12 @@ export class PostgresTaskRepository implements ITaskRepository {
   }
 
   async save(task: Task): Promise<Task> {
+    // Convert checklist to JSON
+    const checklistJson = JSON.stringify(task.checklist.map(item => item.toData()));
+
     const result = await query(
-      `INSERT INTO tasks (title, description, status, priority, assignee_id, created_by, deadline, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO tasks (title, description, status, priority, assignee_id, created_by, deadline, created_at, updated_at, checklist, attachments)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [
         task.title,
@@ -117,6 +120,8 @@ export class PostgresTaskRepository implements ITaskRepository {
         task.deadline,
         task.createdAt,
         task.updatedAt,
+        checklistJson,
+        task.attachments,
       ]
     );
 
@@ -125,10 +130,13 @@ export class PostgresTaskRepository implements ITaskRepository {
   }
 
   async update(task: Task): Promise<void> {
+    // Convert checklist to JSON
+    const checklistJson = JSON.stringify(task.checklist.map(item => item.toData()));
+
     await query(
       `UPDATE tasks
-       SET title = $1, description = $2, priority = $3, assignee_id = $4, deadline = $5, updated_at = $6
-       WHERE id = $7`,
+       SET title = $1, description = $2, priority = $3, assignee_id = $4, deadline = $5, updated_at = $6, checklist = $7, attachments = $8
+       WHERE id = $9`,
       [
         task.title,
         task.description,
@@ -136,6 +144,8 @@ export class PostgresTaskRepository implements ITaskRepository {
         task.assigneeId,
         task.deadline,
         task.updatedAt,
+        checklistJson,
+        task.attachments,
         task.id?.value,
       ]
     );

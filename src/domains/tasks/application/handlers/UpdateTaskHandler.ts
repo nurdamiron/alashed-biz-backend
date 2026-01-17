@@ -3,11 +3,12 @@ import { Result } from '../../../../shared/application/Result.js';
 import { ITaskRepository } from '../../domain/repositories/ITaskRepository.js';
 import { TaskId } from '../../domain/value-objects/TaskId.js';
 import { TaskPriority } from '../../domain/value-objects/TaskPriority.js';
+import { ChecklistItem } from '../../domain/value-objects/ChecklistItem.js';
 import { UpdateTaskDto, TaskDto } from '../dto/TaskDto.js';
 import { TaskMapper } from '../mappers/TaskMapper.js';
 
 export class UpdateTaskHandler implements UseCase<UpdateTaskDto, TaskDto> {
-  constructor(private readonly taskRepository: ITaskRepository) {}
+  constructor(private readonly taskRepository: ITaskRepository) { }
 
   async execute(request: UpdateTaskDto): Promise<Result<TaskDto>> {
     try {
@@ -18,12 +19,19 @@ export class UpdateTaskHandler implements UseCase<UpdateTaskDto, TaskDto> {
         return Result.fail(`Task ${request.taskId} not found`);
       }
 
+      // Convert checklist DTOs to domain objects if provided
+      const checklist = request.checklist?.map(item =>
+        ChecklistItem.fromData(item)
+      );
+
       task.update({
         title: request.title,
         description: request.description,
         priority: request.priority ? TaskPriority.create(request.priority) : undefined,
         assigneeId: request.assigneeId,
         deadline: request.deadline ? new Date(request.deadline) : undefined,
+        checklist,
+        attachments: request.attachments,
       });
 
       await this.taskRepository.update(task);

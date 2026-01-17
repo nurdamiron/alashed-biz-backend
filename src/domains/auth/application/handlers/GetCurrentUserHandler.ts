@@ -24,6 +24,7 @@ export class GetCurrentUserHandler implements UseCase<GetCurrentUserRequest, Use
         name: user.fullName,
         role: user.role.value,
         employeeId: user.employeeId,
+        preferences: user.preferences,
       };
 
       return Result.ok(userDto);

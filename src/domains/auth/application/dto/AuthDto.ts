@@ -9,6 +9,9 @@ export interface UserDto {
   name: string;
   role: string;
   employeeId?: number;
+  preferences?: {
+    theme?: 'light' | 'dark';
+  };
 }
 
 export interface LoginResponseDto {

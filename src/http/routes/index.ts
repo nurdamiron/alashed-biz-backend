@@ -11,6 +11,7 @@ import { aiRoutes } from './ai.routes.js';
 import { suppliersRoutes } from './suppliers.routes.js';
 import { fiscalRoutes } from './fiscal.routes.js';
 import { websocketRoutes } from './websocket.routes.js';
+import { uploadRoutes } from './upload.routes.js';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Health check
@@ -40,6 +41,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     await api.register(employeesRoutes); // New CRUD API
     await api.register(notificationsRoutes);
     await api.register(aiRoutes);
+    await api.register(uploadRoutes);
   }, { prefix: '/api' });
 
   // WebSocket (without /api prefix)

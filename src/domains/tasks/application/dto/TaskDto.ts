@@ -7,6 +7,12 @@ export interface TaskCommentDto {
   createdAt: string;
 }
 
+export interface ChecklistItemDto {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface TaskDto {
   id: number;
   title: string;
@@ -20,6 +26,8 @@ export interface TaskDto {
   completedAt?: string;
   isOverdue: boolean;
   comments: TaskCommentDto[];
+  checklist: ChecklistItemDto[];
+  attachments: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +39,8 @@ export interface CreateTaskDto {
   assigneeId?: number;
   deadline?: string;
   createdById?: number;
+  checklist?: ChecklistItemDto[];
+  attachments?: string[];
 }
 
 export interface UpdateTaskDto {
@@ -40,6 +50,8 @@ export interface UpdateTaskDto {
   priority?: string;
   assigneeId?: number;
   deadline?: string;
+  checklist?: ChecklistItemDto[];
+  attachments?: string[];
 }
 
 export interface UpdateTaskStatusDto {

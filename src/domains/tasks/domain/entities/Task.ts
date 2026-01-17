@@ -3,6 +3,7 @@ import { TaskId } from '../value-objects/TaskId.js';
 import { TaskStatus } from '../value-objects/TaskStatus.js';
 import { TaskPriority } from '../value-objects/TaskPriority.js';
 import { TaskComment } from './TaskComment.js';
+import { ChecklistItem } from '../value-objects/ChecklistItem.js';
 import { ValidationError } from '../../../../shared/domain/errors/DomainError.js';
 
 export interface TaskProps {
@@ -17,6 +18,8 @@ export interface TaskProps {
   deadline?: Date;
   completedAt?: Date;
   comments: TaskComment[];
+  checklist: ChecklistItem[];
+  attachments: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +69,14 @@ export class Task extends AggregateRoot<TaskProps> {
     return [...this.props.comments];
   }
 
+  get checklist(): ChecklistItem[] {
+    return [...this.props.checklist];
+  }
+
+  get attachments(): string[] {
+    return [...(this.props.attachments || [])];
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -85,7 +96,7 @@ export class Task extends AggregateRoot<TaskProps> {
     super(props);
   }
 
-  public static create(props: Omit<TaskProps, 'id' | 'status' | 'comments' | 'createdAt' | 'updatedAt' | 'completedAt'>): Task {
+  public static create(props: Omit<TaskProps, 'id' | 'status' | 'comments' | 'createdAt' | 'updatedAt' | 'completedAt'> & { attachments?: string[]; checklist?: ChecklistItem[] }): Task {
     if (!props.title || props.title.trim().length === 0) {
       throw new ValidationError('Task title is required');
     }
@@ -95,12 +106,25 @@ export class Task extends AggregateRoot<TaskProps> {
       title: props.title.trim(),
       status: TaskStatus.pending(),
       comments: [],
+      checklist: props.checklist || [],
+      attachments: props.attachments || [],
       createdAt: new Date(),
       updatedAt: new Date(),
     });
   }
 
   public static fromPersistence(row: any, comments: TaskComment[] = []): Task {
+    // Parse checklist from JSON if it exists
+    let checklist: ChecklistItem[] = [];
+    if (row.checklist) {
+      try {
+        const checklistData = typeof row.checklist === 'string' ? JSON.parse(row.checklist) : row.checklist;
+        checklist = checklistData.map((item: any) => ChecklistItem.fromData(item));
+      } catch (error) {
+        console.error('Failed to parse checklist:', error);
+      }
+    }
+
     return new Task({
       id: TaskId.create(row.id),
       title: row.title,
@@ -113,6 +137,8 @@ export class Task extends AggregateRoot<TaskProps> {
       deadline: row.deadline ? new Date(row.deadline) : undefined,
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
       comments,
+      checklist,
+      attachments: row.attachments || [],
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     });
@@ -135,7 +161,7 @@ export class Task extends AggregateRoot<TaskProps> {
     }
   }
 
-  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assigneeId' | 'assigneeName' | 'deadline'>>): void {
+  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assigneeId' | 'assigneeName' | 'deadline' | 'checklist' | 'attachments'>>): void {
     if (props.title !== undefined) {
       this.props.title = props.title.trim();
     }
@@ -153,6 +179,12 @@ export class Task extends AggregateRoot<TaskProps> {
     }
     if (props.deadline !== undefined) {
       this.props.deadline = props.deadline;
+    }
+    if (props.checklist !== undefined) {
+      this.props.checklist = props.checklist;
+    }
+    if (props.attachments !== undefined) {
+      this.props.attachments = props.attachments;
     }
     this.props.updatedAt = new Date();
   }

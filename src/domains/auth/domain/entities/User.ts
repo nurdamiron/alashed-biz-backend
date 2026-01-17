@@ -10,6 +10,9 @@ export interface UserProps {
   role: UserRole;
   employeeId?: number;
   lastLogin?: Date;
+  preferences?: {
+    theme?: 'light' | 'dark';
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +46,10 @@ export class User extends Entity<UserProps> {
     return this.props.lastLogin;
   }
 
+  get preferences(): { theme?: 'light' | 'dark' } | undefined {
+    return this.props.preferences;
+  }
+
   public updateLastLogin(): void {
     this.props.lastLogin = new Date();
     this.props.updatedAt = new Date();
@@ -61,6 +68,7 @@ export class User extends Entity<UserProps> {
       role: UserRole.create(row.role),
       employeeId: row.employee_id,
       lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+      preferences: row.preferences || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     });
