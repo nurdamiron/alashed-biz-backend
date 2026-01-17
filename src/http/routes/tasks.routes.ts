@@ -11,6 +11,11 @@ export async function tasksRoutes(app: FastifyInstance): Promise<void> {
       status, assigneeId: assigneeId ? parseInt(assigneeId, 10) : undefined,
       priority, limit: limit ? parseInt(limit, 10) : 50, offset: offset ? parseInt(offset, 10) : 0,
     });
+    if (result.isSuccess && result.value.tasks.length > 0) {
+      const firstTask = result.value.tasks[0];
+      console.log(`GET /tasks: returning ${result.value.tasks.length} tasks. First task: status="${firstTask.status}", priority="${firstTask.priority}", title="${firstTask.title}"`);
+      console.log('Full first task:', JSON.stringify(firstTask, null, 2));
+    }
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });
 

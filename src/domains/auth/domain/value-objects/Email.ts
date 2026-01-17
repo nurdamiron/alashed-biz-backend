@@ -19,9 +19,10 @@ export class Email extends ValueObject<EmailProps> {
   public static create(email: string): Email {
     const normalized = email.trim().toLowerCase();
 
-    if (!this.EMAIL_REGEX.test(normalized)) {
-      throw new ValidationError('Invalid email format', { email: 'Invalid email format' });
-    }
+    // Email format validation disabled per user request
+    // if (!this.EMAIL_REGEX.test(normalized)) {
+    //   throw new ValidationError('Invalid email format', { email: 'Invalid email format' });
+    // }
 
     return new Email({ value: normalized });
   }

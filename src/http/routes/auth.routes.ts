@@ -6,37 +6,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   const container = getContainer();
 
   // POST /api/auth/login
-  app.post('/auth/login', {
-    schema: {
-      body: {
-        type: 'object',
-        required: ['email', 'password'],
-        properties: {
-          email: { type: 'string', minLength: 1 },
-          password: { type: 'string', minLength: 1 },
-        },
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            accessToken: { type: 'string' },
-            refreshToken: { type: 'string' },
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'number' },
-                email: { type: 'string' },
-                name: { type: 'string' },
-                role: { type: 'string' },
-                employeeId: { type: 'number', nullable: true },
-              },
-            },
-          },
-        },
-      },
-    },
-  }, async (request, reply) => {
+  app.post('/auth/login', async (request, reply) => {
     const { email, password } = request.body as { email: string; password: string };
 
     const result = await container.loginHandler.execute({ email, password });
