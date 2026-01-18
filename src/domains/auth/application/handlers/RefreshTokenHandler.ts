@@ -4,8 +4,8 @@ import { IUserRepository } from '../../domain/repositories/IUserRepository.js';
 import { config } from '../../../../config/index.js';
 import jwt from 'jsonwebtoken';
 
-const jwtSign = (jwt as any).sign || jwt.default?.sign;
-const jwtVerify = (jwt as any).verify || jwt.default?.verify;
+const jwtSign = (jwt as any).sign || (jwt as any).default?.sign;
+const jwtVerify = (jwt as any).verify || (jwt as any).default?.verify;
 
 export interface RefreshTokenRequestDto {
   refreshToken: string;

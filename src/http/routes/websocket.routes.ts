@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/index.js';
 
-const jwtVerifyFn = (jwt as any).verify || jwt.default?.verify;
+const jwtVerifyFn = (jwt as any).verify || (jwt as any).default?.verify;
 
 export async function websocketRoutes(app: FastifyInstance): Promise<void> {
   const c = getContainer();

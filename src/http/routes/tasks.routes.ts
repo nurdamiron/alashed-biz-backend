@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getContainer } from '../../di/container.js';
-import { authMiddleware } from '../../middleware/authMiddleware.js';
+import { authMiddleware, getAuthUser } from '../../middleware/authMiddleware.js';
 
 export async function tasksRoutes(app: FastifyInstance): Promise<void> {
   const container = getContainer();
@@ -20,7 +20,8 @@ export async function tasksRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post('/tasks', { preHandler: [authMiddleware] }, async (request, reply) => {
-    const result = await container.createTaskHandler.execute({ ...(request.body as any), createdById: request.user?.userId });
+    const user = getAuthUser(request);
+    const result = await container.createTaskHandler.execute({ ...(request.body as any), createdById: user.userId });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.status(201).send(result.value);
   });
 
@@ -52,7 +53,8 @@ export async function tasksRoutes(app: FastifyInstance): Promise<void> {
   app.post('/tasks/:id/comments', { preHandler: [authMiddleware] }, async (request, reply) => {
     const { id } = request.params as { id: number };
     const { comment } = request.body as { comment: string };
-    const result = await container.addTaskCommentHandler.execute({ taskId: id, userId: request.user!.userId, comment });
+    const user = getAuthUser(request);
+    const result = await container.addTaskCommentHandler.execute({ taskId: id, userId: user.userId, comment });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.status(201).send(result.value);
   });
 }

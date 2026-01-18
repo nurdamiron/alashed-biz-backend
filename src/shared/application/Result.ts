@@ -25,12 +25,12 @@ export class Result<T, E = string> {
     return this._error as E;
   }
 
-  public static ok<T>(value: T): Result<T, never> {
+  public static ok<T>(value?: T): Result<T, never> {
     return new Result<T, never>(true, value);
   }
 
   public static fail<E>(error: E): Result<never, E> {
-    return new Result<never, E>(false, undefined, error);
+    return new Result(false, undefined, error) as Result<never, E>;
   }
 
   public map<U>(fn: (value: T) => U): Result<U, E> {

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getContainer } from '../../di/container.js';
-import { authMiddleware } from '../../middleware/authMiddleware.js';
+import { authMiddleware, getAuthUser } from '../../middleware/authMiddleware.js';
 
 export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
   const c = getContainer();
@@ -48,7 +48,8 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
   app.put('/inventory/:id/stock', { preHandler: [authMiddleware] }, async (req, reply) => {
     const { id } = req.params as { id: number };
     const { delta, reason } = req.body as { delta: number; reason?: string };
-    const result = await c.adjustStockHandler.execute({ productId: id, delta, reason, userId: req.user?.userId });
+    const user = getAuthUser(req);
+    const result = await c.adjustStockHandler.execute({ productId: id, delta, reason, userId: user.userId });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });
 
@@ -61,13 +62,14 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
   // Приемка товара от поставщика
   app.post('/inventory/receive', { preHandler: [authMiddleware] }, async (req, reply) => {
     const { productId, quantity, supplierId, documentNumber, notes } = req.body as any;
+    const user = getAuthUser(req);
     const result = await c.receiveGoodsHandler.execute({
       productId,
       quantity,
       supplierId,
       documentNumber,
       notes,
-      userId: req.user?.userId,
+      userId: user.userId,
     });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send({ success: true });
   });

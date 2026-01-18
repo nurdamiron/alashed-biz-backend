@@ -8,7 +8,7 @@ import { config } from '../../../../config/index.js';
 import jwt from 'jsonwebtoken';
 
 // Объявляем jwt как any чтобы обойти проблемы с типами
-const jwtSign = (jwt as any).sign || jwt.default?.sign;
+const jwtSign = (jwt as any).sign || (jwt as any).default?.sign;
 
 export class LoginHandler implements UseCase<LoginRequestDto, LoginResponseDto> {
   constructor(private readonly userRepository: IUserRepository) {}

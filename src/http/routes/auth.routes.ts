@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getContainer } from '../../di/container.js';
-import { authMiddleware } from '../../middleware/authMiddleware.js';
+import { authMiddleware, getAuthUser } from '../../middleware/authMiddleware.js';
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   const container = getContainer();
@@ -36,8 +36,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       },
     },
   }, async (request, reply) => {
+    const user = getAuthUser(request);
     const result = await container.getCurrentUserHandler.execute({
-      userId: request.user!.userId,
+      userId: user.userId,
     });
 
     if (result.isFailure) {
@@ -100,9 +101,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     },
   }, async (request, reply) => {
     const { theme } = request.body as { theme?: 'light' | 'dark' };
+    const user = getAuthUser(request);
 
     const result = await container.updateUserPreferencesHandler.execute({
-      userId: request.user!.userId,
+      userId: user.userId,
       theme,
     });
 

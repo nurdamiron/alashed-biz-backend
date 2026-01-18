@@ -6,10 +6,8 @@ export interface AuthenticatedUser {
   role: string;
 }
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: AuthenticatedUser;
-  }
+export function getAuthUser(request: FastifyRequest): AuthenticatedUser {
+  return (request as any).user as AuthenticatedUser;
 }
 
 export async function authMiddleware(
@@ -20,11 +18,11 @@ export async function authMiddleware(
     await request.jwtVerify();
 
     const payload = request.user as any;
-    request.user = {
+    (request as any).user = {
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
-    };
+    } as AuthenticatedUser;
   } catch (err) {
     reply.status(401).send({ error: 'Unauthorized' });
   }
@@ -32,12 +30,13 @@ export async function authMiddleware(
 
 export function requireRole(...roles: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
-    if (!request.user) {
+    const user = (request as any).user as AuthenticatedUser | undefined;
+    if (!user) {
       reply.status(401).send({ error: 'Unauthorized' });
       return;
     }
 
-    if (!roles.includes(request.user.role)) {
+    if (!roles.includes(user.role)) {
       reply.status(403).send({ error: 'Forbidden' });
       return;
     }
