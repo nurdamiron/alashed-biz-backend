@@ -28,6 +28,7 @@ tar -czf alashed-backend-deploy.tar.gz \
   --exclude=dist \
   --exclude=.git \
   --exclude=.github \
+  --exclude='*.tar.gz' \
   .
 
 echo -e "${BLUE}2/5${NC} Uploading to S3..."
@@ -38,28 +39,22 @@ PRESIGNED_URL=$(aws s3 presign s3://alashed-media/deploy/alashed-backend-deploy.
 
 echo -e "${BLUE}4/5${NC} Deploying to EC2 via SSM..."
 
-cat > /tmp/deploy-commands.json <<EOF
-{
-  "commands": [
-    "sudo -u ubuntu bash -c 'rm -rf /home/ubuntu/app'",
-    "sudo -u ubuntu bash -c 'cd /home/ubuntu && curl -o alashed-backend-deploy.tar.gz \"$PRESIGNED_URL\"'",
-    "sudo -u ubuntu bash -c 'cd /home/ubuntu && tar -xzf alashed-backend-deploy.tar.gz'",
-    "sudo -u ubuntu bash -c 'test -d /home/ubuntu/app && rm -rf /home/ubuntu/app || true'",
-    "sudo -u ubuntu bash -c 'mv /home/ubuntu/alashed-biz-backend /home/ubuntu/app'",
-    "sudo -u ubuntu bash -c 'cp /home/ubuntu/app.old/.env /home/ubuntu/app/.env 2>/dev/null || true'",
-    "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && npm install --production'",
-    "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && npm run build'",
-    "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && pm2 restart alashed-backend || pm2 start dist/server.js --name alashed-backend --time'",
-    "sudo -u ubuntu bash -c 'pm2 save'",
-    "echo '✅ Deployment completed successfully'"
-  ]
-}
-EOF
-
 COMMAND_ID=$(aws ssm send-command \
   --instance-ids "$INSTANCE_ID" \
   --document-name "AWS-RunShellScript" \
-  --cli-input-json file:///tmp/deploy-commands.json \
+  --parameters "commands=[
+    'sudo -u ubuntu bash -c \"rm -rf /home/ubuntu/app\"',
+    'sudo -u ubuntu bash -c \"cd /home/ubuntu && curl -o alashed-backend-deploy.tar.gz \\\"$PRESIGNED_URL\\\"\"',
+    'sudo -u ubuntu bash -c \"cd /home/ubuntu && tar -xzf alashed-backend-deploy.tar.gz\"',
+    'sudo -u ubuntu bash -c \"test -d /home/ubuntu/app && rm -rf /home/ubuntu/app || true\"',
+    'sudo -u ubuntu bash -c \"mv /home/ubuntu/alashed-biz-backend /home/ubuntu/app\"',
+    'sudo -u ubuntu bash -c \"cp /home/ubuntu/app.old/.env /home/ubuntu/app/.env 2>/dev/null || true\"',
+    'sudo -u ubuntu bash -c \"cd /home/ubuntu/app && npm install --production\"',
+    'sudo -u ubuntu bash -c \"cd /home/ubuntu/app && npm run build\"',
+    'sudo -u ubuntu bash -c \"cd /home/ubuntu/app && pm2 restart alashed-backend || pm2 start dist/server.js --name alashed-backend --time\"',
+    'sudo -u ubuntu bash -c \"pm2 save\"',
+    'echo ✅ Deployment completed successfully'
+  ]" \
   --region "$AWS_REGION" \
   --query 'Command.CommandId' \
   --output text)
@@ -108,4 +103,4 @@ else
 fi
 
 # Cleanup
-rm -f alashed-backend-deploy.tar.gz /tmp/deploy-commands.json
+rm -f alashed-backend-deploy.tar.gz
