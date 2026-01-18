@@ -47,21 +47,30 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
+          PRESIGNED_URL="${{ steps.presign.outputs.url }}"
+
+          cat > deploy-commands.json <<EOF
+          {
+            "commands": [
+              "sudo -u ubuntu bash -c 'rm -rf /home/ubuntu/app'",
+              "sudo -u ubuntu bash -c 'cd /home/ubuntu && curl -o alashed-backend-deploy.tar.gz \"$PRESIGNED_URL\"'",
+              "sudo -u ubuntu bash -c 'cd /home/ubuntu && tar -xzf alashed-backend-deploy.tar.gz'",
+              "sudo -u ubuntu bash -c 'test -d /home/ubuntu/app && rm -rf /home/ubuntu/app || true'",
+              "sudo -u ubuntu bash -c 'mv /home/ubuntu/alashed-biz-backend /home/ubuntu/app'",
+              "sudo -u ubuntu bash -c 'cp /home/ubuntu/app.old/.env /home/ubuntu/app/.env 2>/dev/null || true'",
+              "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && npm install --production'",
+              "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && npm run build'",
+              "sudo -u ubuntu bash -c 'cd /home/ubuntu/app && pm2 restart alashed-backend || pm2 start dist/server.js --name alashed-backend --time'",
+              "sudo -u ubuntu bash -c 'pm2 save'",
+              "echo Deployment completed"
+            ]
+          }
+          EOF
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids i-08eb56616ddb569bc \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              'sudo -u ubuntu bash -c \"rm -rf /home/ubuntu/app\"',
-              'sudo -u ubuntu bash -c \"cd /home/ubuntu && curl -o alashed-backend-deploy.tar.gz ${{ steps.presign.outputs.url }}\"',
-              'sudo -u ubuntu bash -c \"cd /home/ubuntu && tar -xzf alashed-backend-deploy.tar.gz && mv alashed-biz-backend app 2>/dev/null || true\"',
-              'sudo -u ubuntu bash -c \"test -d /home/ubuntu/app || (tar -xzf /home/ubuntu/alashed-backend-deploy.tar.gz -C /home/ubuntu && mv /home/ubuntu/alashed-biz-backend /home/ubuntu/app)\"',
-              'sudo -u ubuntu bash -c \"cp /home/ubuntu/app.old/.env /home/ubuntu/app/.env 2>/dev/null || true\"',
-              'sudo -u ubuntu bash -c \"cd /home/ubuntu/app && npm install --production\"',
-              'sudo -u ubuntu bash -c \"cd /home/ubuntu/app && npm run build\"',
-              'sudo -u ubuntu bash -c \"pm2 restart alashed-backend || pm2 start dist/server.js --name alashed-backend --time\"',
-              'sudo -u ubuntu bash -c \"pm2 save\"',
-              'echo Deployment completed'
-            ]" \
+            --cli-input-json file://deploy-commands.json \
             --region eu-north-1 \
             --query 'Command.CommandId' \
             --output text)
