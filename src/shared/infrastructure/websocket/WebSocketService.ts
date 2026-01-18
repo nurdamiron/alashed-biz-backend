@@ -1,4 +1,4 @@
-import { WebSocket } from '@fastify/websocket';
+import type { WebSocket } from 'ws';
 
 // WebSocket ready state constants
 const WS_OPEN = 1;

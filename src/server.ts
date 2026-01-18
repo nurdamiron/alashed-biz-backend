@@ -1,3 +1,6 @@
+// Import polyfills first - MUST be before any other imports
+import './polyfills.js';
+
 import { buildApp } from './app.js';
 import { config, validateConfig } from './config/index.js';
 import { closePool } from './shared/infrastructure/database/PostgresConnection.js';
