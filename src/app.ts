@@ -77,28 +77,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     secret: config.jwt.secret,
   });
 
-  // Rate Limiting
+  // Rate Limiting (simplified)
   await app.register(rateLimit, {
-    max: 100, // 100 requests per window
+    max: 100,
     timeWindow: '1 minute',
-    allowList: ['127.0.0.1', '::1'], // Allow localhost unlimited
-    keyGenerator: (request) => {
-      // Use user ID for authenticated requests, IP for anonymous
-      const userId = (request as any).user?.userId;
-      return userId ? `user-${userId}` : request.ip;
-    },
-    errorResponseBuilder: (request, context) => ({
-      error: 'Too Many Requests',
-      message: `Слишком много запросов. Попробуйте через ${Math.ceil(context.ttl / 1000)} секунд.`,
-      retryAfter: context.ttl,
-    }),
-    // Stricter limits for auth endpoints
-    onExceeding: (req) => {
-      req.log.warn(`Rate limit approaching for ${req.ip}`);
-    },
-    onExceeded: (req) => {
-      req.log.warn(`Rate limit exceeded for ${req.ip}`);
-    },
   });
 
   // WebSocket
