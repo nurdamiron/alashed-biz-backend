@@ -308,10 +308,17 @@ export class PushService {
       actions: payload.actions,
     });
 
-    await webpush.sendNotification(subscription, notificationPayload, {
+    console.log('[PUSH] Sending to endpoint:', subscription.endpoint.substring(0, 60) + '...');
+    console.log('[PUSH] Payload:', notificationPayload);
+
+    const result = await webpush.sendNotification(subscription, notificationPayload, {
       TTL: 60 * 60, // 1 hour
-      urgency: 'normal',
+      urgency: 'high',
     });
+
+    console.log('[PUSH] Response status:', result.statusCode);
+    console.log('[PUSH] Response headers:', JSON.stringify(result.headers));
+    console.log('[PUSH] Response body:', result.body);
   }
 
   /**
