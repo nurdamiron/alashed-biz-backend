@@ -1,7 +1,6 @@
 import { UseCase } from '../../../../shared/application/UseCase.js';
 import { Result } from '../../../../shared/application/Result.js';
 import { IUserRepository } from '../../domain/repositories/IUserRepository.js';
-import { Email } from '../../domain/value-objects/Email.js';
 import { PasswordService } from '../../../../shared/infrastructure/auth/PasswordService.js';
 import { LoginRequestDto, LoginResponseDto, UserDto } from '../dto/AuthDto.js';
 import { config } from '../../../../config/index.js';
@@ -15,17 +14,8 @@ export class LoginHandler implements UseCase<LoginRequestDto, LoginResponseDto> 
 
   async execute(request: LoginRequestDto): Promise<Result<LoginResponseDto>> {
     try {
-      // Find user by email or username
-      let user = null;
-
-      // Try to find by email first (if it looks like an email)
-      if (request.email.includes('@')) {
-        const email = Email.create(request.email);
-        user = await this.userRepository.findByEmail(email);
-      } else {
-        // Otherwise treat as username
-        user = await this.userRepository.findByUsername(request.email);
-      }
+      // Find user by username
+      const user = await this.userRepository.findByUsername(request.username);
 
       if (!user) {
         return Result.fail('Invalid credentials');
@@ -37,7 +27,7 @@ export class LoginHandler implements UseCase<LoginRequestDto, LoginResponseDto> 
         user.passwordHash
       );
       if (!isValidPassword) {
-        return Result.fail('Invalid email or password');
+        return Result.fail('Invalid credentials');
       }
 
       // Update last login

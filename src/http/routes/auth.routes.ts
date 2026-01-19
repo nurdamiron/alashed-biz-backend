@@ -7,9 +7,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   // POST /api/auth/login
   app.post('/auth/login', async (request, reply) => {
-    const { email, password } = request.body as { email: string; password: string };
+    const { username, password } = request.body as { username: string; password: string };
 
-    const result = await container.loginHandler.execute({ email, password });
+    const result = await container.loginHandler.execute({ username, password });
 
     if (result.isFailure) {
       return reply.status(401).send({ error: result.error });
