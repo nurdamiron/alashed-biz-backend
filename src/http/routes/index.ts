@@ -7,6 +7,7 @@ import { analyticsRoutes } from './analytics.routes.js';
 import { staffRoutes } from './staff.routes.js';
 import { employeesRoutes } from './employees.routes.js';
 import { notificationsRoutes } from './notifications.routes.js';
+import { pushRoutes } from './push.routes.js';
 import { aiRoutes } from './ai.routes.js';
 import { suppliersRoutes } from './suppliers.routes.js';
 import { fiscalRoutes } from './fiscal.routes.js';
@@ -40,6 +41,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     await api.register(staffRoutes); // Legacy
     await api.register(employeesRoutes); // New CRUD API
     await api.register(notificationsRoutes);
+    await api.register(pushRoutes);
     await api.register(aiRoutes);
     await api.register(uploadRoutes);
   }, { prefix: '/api' });

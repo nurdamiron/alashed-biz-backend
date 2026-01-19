@@ -57,6 +57,7 @@ import { DeleteEmployeeHandler } from '../domains/staff/application/handlers/Del
 import { GetNotificationsHandler } from '../domains/notifications/application/handlers/GetNotificationsHandler.js';
 import { MarkAllReadHandler } from '../domains/notifications/application/handlers/MarkAllReadHandler.js';
 import { NotificationService } from '../domains/notifications/infrastructure/services/NotificationService.js';
+import { PushService } from '../domains/notifications/infrastructure/services/PushService.js';
 
 // WebSocket
 import { WebSocketService } from '../shared/infrastructure/websocket/WebSocketService.js';
@@ -153,6 +154,7 @@ export interface Container {
 
   // Notifications
   notificationService: NotificationService;
+  pushService: PushService;
   getNotificationsHandler: GetNotificationsHandler;
   markAllReadHandler: MarkAllReadHandler;
 
@@ -198,8 +200,10 @@ export function initContainer(): Container {
 
   // ==================== Services ====================
   const webSocketService = new WebSocketService();
+  const pushService = new PushService();
   const notificationService = new NotificationService();
   notificationService.setWebSocketService(webSocketService);
+  notificationService.setPushService(pushService);
 
   // ==================== Auth Handlers ====================
   const loginHandler = new LoginHandler(userRepository);
@@ -348,6 +352,7 @@ export function initContainer(): Container {
 
     // Notifications
     notificationService,
+    pushService,
     getNotificationsHandler,
     markAllReadHandler,
 

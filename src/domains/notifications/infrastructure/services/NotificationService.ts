@@ -1,5 +1,6 @@
 import { query } from '../../../../shared/infrastructure/database/PostgresConnection.js';
 import { WebSocketService } from '../../../../shared/infrastructure/websocket/WebSocketService.js';
+import type { PushService, PushPayload } from './PushService.js';
 
 export type NotificationType = 'info' | 'warning' | 'error' | 'success';
 
@@ -8,6 +9,7 @@ export interface CreateNotificationParams {
   title: string;
   message: string;
   type?: NotificationType;
+  url?: string;
 }
 
 /**
@@ -15,19 +17,36 @@ export interface CreateNotificationParams {
  */
 export class NotificationService {
   private wsService?: WebSocketService;
+  private pushService?: PushService;
 
   setWebSocketService(wsService: WebSocketService): void {
     this.wsService = wsService;
+  }
+
+  setPushService(pushService: PushService): void {
+    this.pushService = pushService;
+  }
+
+  private getPushIcon(type: NotificationType): string {
+    const icons: Record<NotificationType, string> = {
+      info: '/icon-192x192.png',
+      warning: '/icon-192x192.png',
+      error: '/icon-192x192.png',
+      success: '/icon-192x192.png',
+    };
+    return icons[type];
   }
   /**
    * Создать уведомление для пользователя
    */
   async create(params: CreateNotificationParams): Promise<void> {
+    const notificationType = params.type || 'info';
+
     try {
       await query(
         `INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
          VALUES ($1, $2, $3, $4, false, NOW())`,
-        [params.userId, params.title, params.message, params.type || 'info']
+        [params.userId, params.title, params.message, notificationType]
       );
 
       // Broadcast via WebSocket
@@ -37,9 +56,23 @@ export class NotificationService {
           data: {
             title: params.title,
             message: params.message,
-            type: params.type || 'info',
+            type: notificationType,
           },
           timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Send Push notification
+      if (this.pushService) {
+        await this.pushService.sendToUser(params.userId, {
+          title: params.title,
+          body: params.message,
+          icon: this.getPushIcon(notificationType),
+          tag: `notification-${Date.now()}`,
+          data: {
+            url: params.url || '/',
+            type: notificationType,
+          },
         });
       }
     } catch (error) {
@@ -50,14 +83,16 @@ export class NotificationService {
   /**
    * Создать уведомления для всех пользователей с определенной ролью
    */
-  async createForRole(role: string, title: string, message: string, type?: NotificationType): Promise<void> {
+  async createForRole(role: string, title: string, message: string, type?: NotificationType, url?: string): Promise<void> {
+    const notificationType = type || 'info';
+
     try {
       await query(
         `INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
          SELECT id, $1, $2, $3, false, NOW()
          FROM users
          WHERE role = $4`,
-        [title, message, type || 'info', role]
+        [title, message, notificationType, role]
       );
 
       // Broadcast via WebSocket
@@ -67,9 +102,23 @@ export class NotificationService {
           data: {
             title,
             message,
-            type: type || 'info',
+            type: notificationType,
           },
           timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Send Push notification to role
+      if (this.pushService) {
+        await this.pushService.sendToRole(role, {
+          title,
+          body: message,
+          icon: this.getPushIcon(notificationType),
+          tag: `notification-role-${role}-${Date.now()}`,
+          data: {
+            url: url || '/',
+            type: notificationType,
+          },
         });
       }
     } catch (error) {
