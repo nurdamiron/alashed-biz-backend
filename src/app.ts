@@ -43,32 +43,9 @@ export async function buildApp(): Promise<FastifyInstance> {
         },
   });
 
-  // CORS
+  // CORS - allow all origins for now
   await app.register(cors, {
-    origin: (origin, cb) => {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) {
-        return cb(null, true);
-      }
-
-      const allowedOrigins = config.cors.allowedOrigins || [];
-      // Allow if origin matches any allowed origin
-      if (allowedOrigins.some(allowed => origin.includes(allowed.replace(/https?:\/\//, '')))) {
-        return cb(null, true);
-      }
-
-      // Allow localhost in development
-      if (config.isDev && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-        return cb(null, true);
-      }
-
-      // Allow Vercel preview deployments
-      if (origin.includes('vercel.app')) {
-        return cb(null, true);
-      }
-
-      cb(null, true); // Allow all for now, tighten later if needed
-    },
+    origin: true,
     credentials: true,
   });
 
