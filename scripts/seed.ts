@@ -21,14 +21,14 @@ async function seed(): Promise<void> {
     console.log('👤 Creating admin user...');
     const passwordHash = await bcrypt.hash('admin', 10);
     const userResult = await client.query(
-      `INSERT INTO users (email, password_hash, full_name, role, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       ON CONFLICT (email) DO UPDATE
+      `INSERT INTO users (username, email, password_hash, full_name, role, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       ON CONFLICT (username) DO UPDATE
        SET password_hash = EXCLUDED.password_hash,
            full_name = EXCLUDED.full_name,
            updated_at = NOW()
        RETURNING id`,
-      ['admin@alashed.kz', passwordHash, 'Администратор', 'admin']
+      ['admin', 'admin@alashed.kz', passwordHash, 'Администратор', 'admin']
     );
     const userId = userResult.rows[0].id;
     console.log(`✅ Admin user created (ID: ${userId})\n`);
@@ -184,7 +184,7 @@ async function seed(): Promise<void> {
 
     console.log('✅ Seed completed successfully!\n');
     console.log('📝 Test credentials:');
-    console.log('   Email: admin@alashed.kz');
+    console.log('   Username: admin');
     console.log('   Password: admin\n');
   } catch (error) {
     await client.query('ROLLBACK');

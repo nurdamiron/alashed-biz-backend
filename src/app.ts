@@ -164,6 +164,13 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
+    console.error('=== ERROR DETAILS ===');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('URL:', request.url);
+    console.error('Method:', request.method);
+    console.error('=====================');
+
     request.log.error({
       err: error,
       method: request.method,
