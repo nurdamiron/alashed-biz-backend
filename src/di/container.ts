@@ -59,6 +59,9 @@ import { MarkAllReadHandler } from '../domains/notifications/application/handler
 import { NotificationService } from '../domains/notifications/infrastructure/services/NotificationService.js';
 import { PushService } from '../domains/notifications/infrastructure/services/PushService.js';
 
+// SMS
+import { SmsService } from '../domains/sms/infrastructure/services/SmsService.js';
+
 // WebSocket
 import { WebSocketService } from '../shared/infrastructure/websocket/WebSocketService.js';
 
@@ -155,6 +158,7 @@ export interface Container {
   // Notifications
   notificationService: NotificationService;
   pushService: PushService;
+  smsService: SmsService;
   getNotificationsHandler: GetNotificationsHandler;
   markAllReadHandler: MarkAllReadHandler;
 
@@ -201,6 +205,7 @@ export function initContainer(): Container {
   // ==================== Services ====================
   const webSocketService = new WebSocketService();
   const pushService = new PushService();
+  const smsService = new SmsService();
   const notificationService = new NotificationService();
   notificationService.setWebSocketService(webSocketService);
   notificationService.setPushService(pushService);
@@ -350,9 +355,10 @@ export function initContainer(): Container {
     updateEmployeeHandler,
     deleteEmployeeHandler,
 
-    // Notifications
+    // Notifications & SMS
     notificationService,
     pushService,
+    smsService,
     getNotificationsHandler,
     markAllReadHandler,
 

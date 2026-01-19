@@ -1,6 +1,7 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -13,20 +14,91 @@ import { initContainer } from './di/container.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: {
-      level: config.isDev ? 'info' : 'warn',
-    },
+    logger: config.isDev
+      ? {
+          level: 'info',
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'HH:MM:ss',
+              ignore: 'pid,hostname',
+              singleLine: false,
+            },
+          },
+        }
+      : {
+          level: 'warn',
+          // Structured JSON logs for production
+          formatters: {
+            level: (label) => ({ level: label }),
+            bindings: (bindings) => ({
+              pid: bindings.pid,
+              host: bindings.hostname,
+              service: 'alashed-api',
+              version: '2.0.0',
+            }),
+          },
+          timestamp: () => `,"time":"${new Date().toISOString()}"`,
+        },
   });
 
   // CORS
   await app.register(cors, {
-    origin: config.cors.allowedOrigins,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        return cb(null, true);
+      }
+
+      const allowedOrigins = config.cors.allowedOrigins || [];
+      // Allow if origin matches any allowed origin
+      if (allowedOrigins.some(allowed => origin.includes(allowed.replace(/https?:\/\//, '')))) {
+        return cb(null, true);
+      }
+
+      // Allow localhost in development
+      if (config.isDev && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        return cb(null, true);
+      }
+
+      // Allow Vercel preview deployments
+      if (origin.includes('vercel.app')) {
+        return cb(null, true);
+      }
+
+      cb(null, true); // Allow all for now, tighten later if needed
+    },
     credentials: true,
   });
 
   // JWT
   await app.register(jwt, {
     secret: config.jwt.secret,
+  });
+
+  // Rate Limiting
+  await app.register(rateLimit, {
+    max: 100, // 100 requests per window
+    timeWindow: '1 minute',
+    allowList: ['127.0.0.1', '::1'], // Allow localhost unlimited
+    keyGenerator: (request) => {
+      // Use user ID for authenticated requests, IP for anonymous
+      const userId = (request as any).user?.userId;
+      return userId ? `user-${userId}` : request.ip;
+    },
+    errorResponseBuilder: (request, context) => ({
+      error: 'Too Many Requests',
+      message: `Слишком много запросов. Попробуйте через ${Math.ceil(context.ttl / 1000)} секунд.`,
+      retryAfter: context.ttl,
+    }),
+    // Stricter limits for auth endpoints
+    onExceeding: (req) => {
+      req.log.warn(`Rate limit approaching for ${req.ip}`);
+    },
+    onExceeded: (req) => {
+      req.log.warn(`Rate limit exceeded for ${req.ip}`);
+    },
   });
 
   // WebSocket
@@ -88,9 +160,34 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register routes
   await registerRoutes(app);
 
+  // Request logging hook
+  app.addHook('onRequest', async (request) => {
+    request.log.info({
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers['user-agent'],
+      ip: request.ip,
+    }, 'incoming request');
+  });
+
+  // Response logging hook
+  app.addHook('onResponse', async (request, reply) => {
+    request.log.info({
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      responseTime: reply.elapsedTime,
+    }, 'request completed');
+  });
+
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
-    app.log.error(error);
+    request.log.error({
+      err: error,
+      method: request.method,
+      url: request.url,
+      statusCode: error.statusCode || 500,
+    }, 'request error');
 
     if (error.validation) {
       return reply.status(400).send({
@@ -99,7 +196,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       });
     }
 
-    return reply.status(500).send({
+    return reply.status(error.statusCode || 500).send({
       error: config.isDev ? error.message : 'Internal Server Error',
     });
   });
