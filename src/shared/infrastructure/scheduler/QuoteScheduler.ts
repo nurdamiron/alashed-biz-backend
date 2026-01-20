@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { GeminiProvider } from '../../../domains/ai/infrastructure/providers/GeminiProvider.js';
 import { PushService } from '../../../domains/notifications/infrastructure/services/PushService.js';
+import { query } from '../database/PostgresConnection.js';
 
 const BASE_PROMPT = `Напиши одну короткую цитату известного бизнесмена или предпринимателя на русском языке.
 
@@ -19,7 +20,6 @@ export class QuoteScheduler {
   private geminiProvider: GeminiProvider;
   private pushService: PushService;
   private isRunning = false;
-  private recentQuotes: string[] = []; // История последних цитат
   private maxHistory = 30; // Хранить последние 30 цитат
 
   constructor(geminiProvider: GeminiProvider, pushService: PushService) {
@@ -28,24 +28,54 @@ export class QuoteScheduler {
   }
 
   /**
+   * Load recent quotes from database
+   */
+  private async loadRecentQuotes(): Promise<string[]> {
+    try {
+      const result = await query(
+        'SELECT quote FROM quote_history ORDER BY sent_at DESC LIMIT $1',
+        [this.maxHistory]
+      );
+      return result.rows.map(row => row.quote);
+    } catch (error) {
+      console.error('[QuoteScheduler] Failed to load quote history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Save quote to database
+   */
+  private async saveQuote(quote: string): Promise<void> {
+    try {
+      await query(
+        'INSERT INTO quote_history (quote) VALUES ($1)',
+        [quote]
+      );
+    } catch (error) {
+      console.error('[QuoteScheduler] Failed to save quote:', error);
+    }
+  }
+
+  /**
    * Generate a motivational quote using AI (no repetitions)
    */
   private async generateQuote(): Promise<string> {
     let prompt = BASE_PROMPT;
 
+    // Загружаем историю из БД
+    const recentQuotes = await this.loadRecentQuotes();
+
     // Добавляем историю чтобы не повторяться
-    if (this.recentQuotes.length > 0) {
-      prompt += `\n\nНЕ ПОВТОРЯЙ эти цитаты которые уже были:\n${this.recentQuotes.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
+    if (recentQuotes.length > 0) {
+      prompt += `\n\nНЕ ПОВТОРЯЙ эти цитаты которые уже были:\n${recentQuotes.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
     }
 
     const quote = await this.geminiProvider.chat(prompt);
     const trimmedQuote = quote.trim();
 
-    // Добавляем в историю
-    this.recentQuotes.push(trimmedQuote);
-    if (this.recentQuotes.length > this.maxHistory) {
-      this.recentQuotes.shift(); // Удаляем самую старую
-    }
+    // Сохраняем в БД
+    await this.saveQuote(trimmedQuote);
 
     return trimmedQuote;
   }
@@ -113,7 +143,7 @@ export class QuoteScheduler {
     const quote = await this.generateQuote();
 
     const count = await this.pushService.broadcast({
-      title: '💡 Цитата дня',
+      title: '💡',
       body: quote,
       tag: 'test-quote',
       data: {
