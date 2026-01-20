@@ -162,14 +162,11 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(403).send({ error: 'Admin access required' });
       }
 
-      const { isMorning } = req.body as { isMorning?: boolean };
-
       try {
-        const quote = await c.quoteScheduler.sendTestQuote(isMorning ?? true);
+        const quote = await c.quoteScheduler.sendTestQuote();
         return reply.send({
           success: true,
           quote,
-          type: isMorning !== false ? 'morning' : 'evening',
         });
       } catch (error) {
         console.error('Test quote error:', error);

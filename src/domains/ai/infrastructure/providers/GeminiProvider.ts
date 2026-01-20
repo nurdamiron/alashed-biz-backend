@@ -13,7 +13,7 @@ export class GeminiProvider {
   }
 
   async chat(message: string, history: Array<{ role: string; content: string }> = []): Promise<string> {
-    const model = this.getClient().getGenerativeModel({ model: 'gemini-pro' });
+    const model = this.getClient().getGenerativeModel({ model: 'gemini-3-flash-preview' });
     const chat = model.startChat({
       history: history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] })),
     });

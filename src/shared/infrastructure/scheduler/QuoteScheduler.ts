@@ -2,31 +2,15 @@ import cron from 'node-cron';
 import { GeminiProvider } from '../../../domains/ai/infrastructure/providers/GeminiProvider.js';
 import { PushService } from '../../../domains/notifications/infrastructure/services/PushService.js';
 
-const MORNING_PROMPT = `Сгенерируй короткую мотивационную цитату на русском языке для начала рабочего дня.
-Цитата должна быть:
-- Короткой (максимум 2 предложения)
-- Реалистичной и практичной (не слишком пафосной)
-- Мотивирующей к продуктивной работе
-- Без указания автора
+const BASE_PROMPT = `Напиши одну короткую цитату известного бизнесмена или предпринимателя на русском языке.
 
-Примеры стиля:
-- "Каждый день - это новая возможность стать лучше. Начни с малого."
-- "Успех складывается из маленьких ежедневных усилий."
+Требования:
+- Цитата должна быть от реального известного бизнесмена (Илон Маск, Стив Джобс, Джефф Безос, Уоррен Баффет, Билл Гейтс, Марк Цукерберг, Джек Ма, Ричард Брэнсон, Сэм Альтман и др.)
+- Максимум 1-2 предложения
+- О работе, успехе, мотивации или бизнесе
+- Формат: "Цитата" — Имя Автора
 
-Ответь только цитатой, без лишнего текста.`;
-
-const EVENING_PROMPT = `Сгенерируй короткую мотивационную цитату на русском языке для завершения рабочего дня.
-Цитата должна быть:
-- Короткой (максимум 2 предложения)
-- Реалистичной (признание усталости, но с позитивом)
-- Помогающей отпустить рабочие заботы
-- Без указания автора
-
-Примеры стиля:
-- "Хороший отдых сегодня - это энергия на завтра. Ты заслужил перерыв."
-- "День закончен. Отпусти то, что не успел - завтра новые возможности."
-
-Ответь только цитатой, без лишнего текста.`;
+Ответь только цитатой в указанном формате, без лишнего текста.`;
 
 /**
  * Scheduler for sending daily motivational quotes via push notifications
@@ -35,6 +19,8 @@ export class QuoteScheduler {
   private geminiProvider: GeminiProvider;
   private pushService: PushService;
   private isRunning = false;
+  private recentQuotes: string[] = []; // История последних цитат
+  private maxHistory = 30; // Хранить последние 30 цитат
 
   constructor(geminiProvider: GeminiProvider, pushService: PushService) {
     this.geminiProvider = geminiProvider;
@@ -42,29 +28,26 @@ export class QuoteScheduler {
   }
 
   /**
-   * Generate a motivational quote using AI
+   * Generate a motivational quote using AI (no repetitions)
    */
-  private async generateQuote(isMorning: boolean): Promise<string> {
-    try {
-      const prompt = isMorning ? MORNING_PROMPT : EVENING_PROMPT;
-      const quote = await this.geminiProvider.chat(prompt);
-      return quote.trim();
-    } catch (error) {
-      console.error('[QuoteScheduler] Failed to generate quote:', error);
-      // Fallback quotes
-      const fallbacks = isMorning
-        ? [
-            'Новый день - новые возможности. Действуй!',
-            'Каждое утро - это шанс начать заново.',
-            'Маленькие шаги каждый день ведут к большим результатам.',
-          ]
-        : [
-            'День завершен. Отдохни и набирайся сил.',
-            'Ты сделал все что мог сегодня. Завтра будет новый день.',
-            'Хороший отдых - залог продуктивного завтра.',
-          ];
-      return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  private async generateQuote(): Promise<string> {
+    let prompt = BASE_PROMPT;
+
+    // Добавляем историю чтобы не повторяться
+    if (this.recentQuotes.length > 0) {
+      prompt += `\n\nНЕ ПОВТОРЯЙ эти цитаты которые уже были:\n${this.recentQuotes.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
     }
+
+    const quote = await this.geminiProvider.chat(prompt);
+    const trimmedQuote = quote.trim();
+
+    // Добавляем в историю
+    this.recentQuotes.push(trimmedQuote);
+    if (this.recentQuotes.length > this.maxHistory) {
+      this.recentQuotes.shift(); // Удаляем самую старую
+    }
+
+    return trimmedQuote;
   }
 
   /**
@@ -75,8 +58,8 @@ export class QuoteScheduler {
     console.log(`[QuoteScheduler] Sending ${timeOfDay} quote...`);
 
     try {
-      const quote = await this.generateQuote(isMorning);
-      const title = isMorning ? 'Доброе утро!' : 'Добрый вечер!';
+      const quote = await this.generateQuote();
+      const title = isMorning ? '🌅 Доброе утро!' : '🌙 Добрый вечер!';
 
       const count = await this.pushService.broadcast({
         title,
@@ -126,12 +109,11 @@ export class QuoteScheduler {
   /**
    * Send a test quote immediately
    */
-  async sendTestQuote(isMorning: boolean = true): Promise<string> {
-    const quote = await this.generateQuote(isMorning);
-    const title = isMorning ? 'Доброе утро!' : 'Добрый вечер!';
+  async sendTestQuote(): Promise<string> {
+    const quote = await this.generateQuote();
 
     const count = await this.pushService.broadcast({
-      title,
+      title: '💡 Цитата дня',
       body: quote,
       tag: 'test-quote',
       data: {
@@ -142,5 +124,12 @@ export class QuoteScheduler {
 
     console.log(`[QuoteScheduler] Test quote sent to ${count} device(s)`);
     return quote;
+  }
+
+  /**
+   * Get quote without sending (for testing)
+   */
+  async getQuote(): Promise<string> {
+    return this.generateQuote();
   }
 }
