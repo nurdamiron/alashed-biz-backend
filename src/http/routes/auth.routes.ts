@@ -9,12 +9,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/auth/login', {
     config: {
       rateLimit: {
-        max: 5, // Only 5 login attempts
-        timeWindow: '5 minutes',
-        keyGenerator: (request) => request.ip, // Always by IP for login
+        max: 100, // Increased for testing
+        timeWindow: '1 minute',
+        keyGenerator: (request) => request.ip,
         errorResponseBuilder: () => ({
           error: 'Too Many Login Attempts',
-          message: 'Слишком много попыток входа. Попробуйте через 5 минут.',
+          message: 'Слишком много попыток входа. Попробуйте через минуту.',
         }),
       },
     },

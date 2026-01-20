@@ -162,7 +162,7 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(403).send({ error: 'Admin access required' });
       }
 
-      const { query } = await import('../../../../shared/infrastructure/database/PostgresConnection.js');
+      const { query } = await import('../../shared/infrastructure/database/PostgresConnection.js');
 
       try {
         // Get subscription stats
