@@ -6,14 +6,20 @@ import { TaskComment } from './TaskComment.js';
 import { ChecklistItem } from '../value-objects/ChecklistItem.js';
 import { ValidationError } from '../../../../shared/domain/errors/DomainError.js';
 
+export interface TaskAssignee {
+  id: number;
+  name: string;
+}
+
 export interface TaskProps {
   id?: TaskId;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assigneeId?: number;
-  assigneeName?: string;
+  assigneeId?: number;  // Legacy - для обратной совместимости
+  assigneeName?: string; // Legacy - для обратной совместимости
+  assignees: TaskAssignee[]; // Новое - массив исполнителей
   createdById?: number;
   deadline?: Date;
   completedAt?: Date;
@@ -51,6 +57,10 @@ export class Task extends AggregateRoot<TaskProps> {
 
   get assigneeName(): string | undefined {
     return this.props.assigneeName;
+  }
+
+  get assignees(): TaskAssignee[] {
+    return [...this.props.assignees];
   }
 
   get createdById(): number | undefined {
@@ -96,7 +106,7 @@ export class Task extends AggregateRoot<TaskProps> {
     super(props);
   }
 
-  public static create(props: Omit<TaskProps, 'id' | 'status' | 'comments' | 'createdAt' | 'updatedAt' | 'completedAt'> & { attachments?: string[]; checklist?: ChecklistItem[] }): Task {
+  public static create(props: Omit<TaskProps, 'id' | 'status' | 'comments' | 'createdAt' | 'updatedAt' | 'completedAt' | 'assignees'> & { attachments?: string[]; checklist?: ChecklistItem[]; assignees?: TaskAssignee[] }): Task {
     if (!props.title || props.title.trim().length === 0) {
       throw new ValidationError('Task title is required');
     }
@@ -108,12 +118,13 @@ export class Task extends AggregateRoot<TaskProps> {
       comments: [],
       checklist: props.checklist || [],
       attachments: props.attachments || [],
+      assignees: props.assignees || [],
       createdAt: new Date(),
       updatedAt: new Date(),
     });
   }
 
-  public static fromPersistence(row: any, comments: TaskComment[] = []): Task {
+  public static fromPersistence(row: any, comments: TaskComment[] = [], assignees: TaskAssignee[] = []): Task {
     // Parse checklist from JSON if it exists
     let checklist: ChecklistItem[] = [];
     if (row.checklist) {
@@ -133,6 +144,7 @@ export class Task extends AggregateRoot<TaskProps> {
       priority: TaskPriority.create(row.priority || 'medium'),
       assigneeId: row.assignee_id || row.employee_id,
       assigneeName: row.assignee_name || row.assignee,
+      assignees: assignees.length > 0 ? assignees : (row.assignee_id ? [{ id: row.assignee_id, name: row.assignee_name || row.assignee || '' }] : []),
       createdById: row.created_by,
       deadline: row.deadline ? new Date(row.deadline) : undefined,
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
@@ -161,7 +173,7 @@ export class Task extends AggregateRoot<TaskProps> {
     }
   }
 
-  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assigneeId' | 'assigneeName' | 'deadline' | 'checklist' | 'attachments'>>): void {
+  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assigneeId' | 'assigneeName' | 'assignees' | 'deadline' | 'checklist' | 'attachments'>>): void {
     if (props.title !== undefined) {
       this.props.title = props.title.trim();
     }
@@ -176,6 +188,9 @@ export class Task extends AggregateRoot<TaskProps> {
     }
     if (props.assigneeName !== undefined) {
       this.props.assigneeName = props.assigneeName;
+    }
+    if (props.assignees !== undefined) {
+      this.props.assignees = props.assignees;
     }
     if (props.deadline !== undefined) {
       this.props.deadline = props.deadline;

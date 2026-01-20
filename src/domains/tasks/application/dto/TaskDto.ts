@@ -13,14 +13,20 @@ export interface ChecklistItemDto {
   done: boolean;
 }
 
+export interface TaskAssigneeDto {
+  id: number;
+  name: string;
+}
+
 export interface TaskDto {
   id: number;
   title: string;
   description?: string;
   status: string;
   priority: string;
-  assigneeId?: number;
-  assigneeName?: string;
+  assigneeId?: number;    // Legacy - для обратной совместимости
+  assigneeName?: string;  // Legacy - для обратной совместимости
+  assignees: TaskAssigneeDto[]; // Новое - массив исполнителей
   createdById?: number;
   deadline?: string;
   completedAt?: string;
@@ -36,7 +42,8 @@ export interface CreateTaskDto {
   title: string;
   description?: string;
   priority?: string;
-  assigneeId?: number;
+  assigneeId?: number;     // Legacy - для обратной совместимости
+  assigneeIds?: number[];  // Новое - массив ID исполнителей
   deadline?: string;
   createdById?: number;
   checklist?: ChecklistItemDto[];
@@ -48,7 +55,8 @@ export interface UpdateTaskDto {
   title?: string;
   description?: string;
   priority?: string;
-  assigneeId?: number;
+  assigneeId?: number;     // Legacy - для обратной совместимости
+  assigneeIds?: number[];  // Новое - массив ID исполнителей
   deadline?: string;
   checklist?: ChecklistItemDto[];
   attachments?: string[];

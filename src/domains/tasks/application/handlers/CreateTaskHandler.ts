@@ -7,6 +7,7 @@ import { ChecklistItem } from '../../domain/value-objects/ChecklistItem.js';
 import { CreateTaskDto, TaskDto } from '../dto/TaskDto.js';
 import { TaskMapper } from '../mappers/TaskMapper.js';
 import { NotificationService } from '../../../notifications/infrastructure/services/NotificationService.js';
+import { PostgresTaskRepository } from '../../infrastructure/repositories/PostgresTaskRepository.js';
 
 export class CreateTaskHandler implements UseCase<CreateTaskDto, TaskDto> {
   constructor(
@@ -23,11 +24,15 @@ export class CreateTaskHandler implements UseCase<CreateTaskDto, TaskDto> {
         ChecklistItem.fromData(item)
       ) ?? [];
 
+      // Поддержка как одного assigneeId, так и массива assigneeIds
+      const assigneeIds = request.assigneeIds || (request.assigneeId ? [request.assigneeId] : []);
+      const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : undefined;
+
       const task = Task.create({
         title: request.title,
         description: request.description,
         priority: TaskPriority.create(request.priority || 'medium'),
-        assigneeId: request.assigneeId,
+        assigneeId: primaryAssigneeId, // Legacy - первый исполнитель
         createdById: request.createdById,
         deadline: request.deadline ? new Date(request.deadline) : undefined,
         checklist,
@@ -36,16 +41,24 @@ export class CreateTaskHandler implements UseCase<CreateTaskDto, TaskDto> {
 
       const savedTask = await this.taskRepository.save(task);
 
-      // Send notification to assignee
-      if (savedTask.assigneeId) {
+      // Сохраняем всех исполнителей в task_assignees
+      if (assigneeIds.length > 0 && this.taskRepository instanceof PostgresTaskRepository) {
+        await this.taskRepository.saveAssignees(savedTask.id!.value, assigneeIds);
+      }
+
+      // Send notification to all assignees
+      for (const assigneeId of assigneeIds) {
         await this.notificationService.notifyNewTask(
           savedTask.id!.value,
           savedTask.title,
-          savedTask.assigneeId
+          assigneeId
         );
       }
 
-      return Result.ok(TaskMapper.toDto(savedTask));
+      // Перезагружаем задачу чтобы получить всех исполнителей
+      const reloadedTask = await this.taskRepository.findById(savedTask.id!);
+
+      return Result.ok(TaskMapper.toDto(reloadedTask || savedTask));
     } catch (error) {
       console.error('CreateTaskHandler error:', error);
       if (error instanceof Error) {

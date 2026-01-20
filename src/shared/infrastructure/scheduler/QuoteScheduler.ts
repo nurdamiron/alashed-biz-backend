@@ -32,13 +32,16 @@ export class QuoteScheduler {
    */
   private async loadRecentQuotes(): Promise<string[]> {
     try {
+      console.log('[QuoteScheduler] Loading recent quotes from database...');
       const result = await query(
         'SELECT quote FROM quote_history ORDER BY sent_at DESC LIMIT $1',
         [this.maxHistory]
       );
+      console.log('[QuoteScheduler] Loaded', result.rows.length, 'quotes from history');
       return result.rows.map(row => row.quote);
     } catch (error) {
       console.error('[QuoteScheduler] Failed to load quote history:', error);
+      console.error('[QuoteScheduler] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       return [];
     }
   }
@@ -48,12 +51,15 @@ export class QuoteScheduler {
    */
   private async saveQuote(quote: string): Promise<void> {
     try {
-      await query(
-        'INSERT INTO quote_history (quote) VALUES ($1)',
+      console.log('[QuoteScheduler] Saving quote to database:', quote.substring(0, 50) + '...');
+      const result = await query(
+        'INSERT INTO quote_history (quote) VALUES ($1) RETURNING id',
         [quote]
       );
+      console.log('[QuoteScheduler] Quote saved with id:', result.rows[0]?.id);
     } catch (error) {
       console.error('[QuoteScheduler] Failed to save quote:', error);
+      console.error('[QuoteScheduler] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
   }
 
@@ -89,7 +95,7 @@ export class QuoteScheduler {
 
     try {
       const quote = await this.generateQuote();
-      const title = isMorning ? '🌅 Доброе утро!' : '🌙 Добрый вечер!';
+      const title = isMorning ? '🌅' : '🌙';
 
       const count = await this.pushService.broadcast({
         title,

@@ -1,6 +1,6 @@
 import { query, transaction } from '../../../../shared/infrastructure/database/PostgresConnection.js';
 import { ITaskRepository, TaskFilters, PaginationParams } from '../../domain/repositories/ITaskRepository.js';
-import { Task } from '../../domain/entities/Task.js';
+import { Task, TaskAssignee } from '../../domain/entities/Task.js';
 import { TaskComment } from '../../domain/entities/TaskComment.js';
 import { TaskId } from '../../domain/value-objects/TaskId.js';
 import { TaskStatus } from '../../domain/value-objects/TaskStatus.js';
@@ -28,8 +28,18 @@ export class PostgresTaskRepository implements ITaskRepository {
       [id.value]
     );
 
+    // Загружаем исполнителей из task_assignees
+    const assigneesResult = await query(
+      `SELECT ta.employee_id as id, e.name
+       FROM task_assignees ta
+       JOIN employees e ON ta.employee_id = e.id
+       WHERE ta.task_id = $1`,
+      [id.value]
+    );
+
     const comments = commentsResult.rows.map((row) => TaskComment.fromPersistence(row));
-    return Task.fromPersistence(taskResult.rows[0], comments);
+    const assignees: TaskAssignee[] = assigneesResult.rows.map(row => ({ id: row.id, name: row.name }));
+    return Task.fromPersistence(taskResult.rows[0], comments, assignees);
   }
 
   async findAll(filters?: TaskFilters, pagination?: PaginationParams): Promise<Task[]> {
@@ -94,11 +104,22 @@ export class PostgresTaskRepository implements ITaskRepository {
       [taskIds]
     );
 
+    // Batch fetch assignees
+    const assigneesResult = await query(
+      `SELECT ta.task_id, ta.employee_id as id, e.name
+       FROM task_assignees ta
+       JOIN employees e ON ta.employee_id = e.id
+       WHERE ta.task_id = ANY($1)`,
+      [taskIds]
+    );
+
     const commentsByTask = this.groupCommentsByTask(commentsResult.rows);
+    const assigneesByTask = this.groupAssigneesByTask(assigneesResult.rows);
 
     return result.rows.map((row) => {
       const comments = (commentsByTask.get(row.id) || []).map((c) => TaskComment.fromPersistence(c));
-      return Task.fromPersistence(row, comments);
+      const assignees: TaskAssignee[] = assigneesByTask.get(row.id) || [];
+      return Task.fromPersistence(row, comments, assignees);
     });
   }
 
@@ -223,5 +244,31 @@ export class PostgresTaskRepository implements ITaskRepository {
       map.get(taskId)!.push(comment);
     }
     return map;
+  }
+
+  private groupAssigneesByTask(assignees: any[]): Map<number, TaskAssignee[]> {
+    const map = new Map<number, TaskAssignee[]>();
+    for (const assignee of assignees) {
+      const taskId = assignee.task_id;
+      if (!map.has(taskId)) {
+        map.set(taskId, []);
+      }
+      map.get(taskId)!.push({ id: assignee.id, name: assignee.name });
+    }
+    return map;
+  }
+
+  async saveAssignees(taskId: number, assigneeIds: number[]): Promise<void> {
+    // Удаляем старых исполнителей
+    await query('DELETE FROM task_assignees WHERE task_id = $1', [taskId]);
+
+    // Добавляем новых
+    if (assigneeIds.length > 0) {
+      const values = assigneeIds.map((_, i) => `($1, $${i + 2})`).join(', ');
+      await query(
+        `INSERT INTO task_assignees (task_id, employee_id) VALUES ${values}`,
+        [taskId, ...assigneeIds]
+      );
+    }
   }
 }
