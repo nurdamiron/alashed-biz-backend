@@ -27,14 +27,10 @@ export class NotificationService {
     this.pushService = pushService;
   }
 
-  private getPushIcon(type: NotificationType): string {
-    const icons: Record<NotificationType, string> = {
-      info: '/icon-192x192.png',
-      warning: '/icon-192x192.png',
-      error: '/icon-192x192.png',
-      success: '/icon-192x192.png',
-    };
-    return icons[type];
+  private getPushIcon(_type: NotificationType): string {
+    // Return empty - PushService will use absolute URL as default
+    // iOS requires absolute URLs for notification icons
+    return '';
   }
   /**
    * Создать уведомление для пользователя

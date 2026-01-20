@@ -298,14 +298,18 @@ export class PushService {
    * Internal method to send a notification
    */
   private async sendNotification(subscription: PushSubscriptionData, payload: PushPayload): Promise<void> {
+    // iOS requires absolute URLs for icons
+    const baseUrl = process.env.FRONTEND_URL || 'https://alashed-biz-frontend.vercel.app';
+    const defaultIcon = `${baseUrl}/icon-192x192.png`;
+
     const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon || '/icon-192x192.png',
-      badge: payload.badge || '/icon-192x192.png',
+      icon: payload.icon?.startsWith('http') ? payload.icon : defaultIcon,
+      badge: payload.badge?.startsWith('http') ? payload.badge : defaultIcon,
       tag: payload.tag,
       data: payload.data,
-      actions: payload.actions,
+      // Note: actions removed for iOS compatibility
     });
 
     console.log('[PUSH] Sending to endpoint:', subscription.endpoint.substring(0, 60) + '...');
