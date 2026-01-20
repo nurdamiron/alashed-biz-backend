@@ -17,9 +17,7 @@ export interface TaskProps {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assigneeId?: number;  // Legacy - для обратной совместимости
-  assigneeName?: string; // Legacy - для обратной совместимости
-  assignees: TaskAssignee[]; // Новое - массив исполнителей
+  assignees: TaskAssignee[];
   createdById?: number;
   deadline?: Date;
   completedAt?: Date;
@@ -49,14 +47,6 @@ export class Task extends AggregateRoot<TaskProps> {
 
   get priority(): TaskPriority {
     return this.props.priority;
-  }
-
-  get assigneeId(): number | undefined {
-    return this.props.assigneeId;
-  }
-
-  get assigneeName(): string | undefined {
-    return this.props.assigneeName;
   }
 
   get assignees(): TaskAssignee[] {
@@ -142,9 +132,7 @@ export class Task extends AggregateRoot<TaskProps> {
       description: row.description,
       status: TaskStatus.create(row.status),
       priority: TaskPriority.create(row.priority || 'medium'),
-      assigneeId: row.assignee_id || row.employee_id,
-      assigneeName: row.assignee_name || row.assignee,
-      assignees: assignees.length > 0 ? assignees : (row.assignee_id ? [{ id: row.assignee_id, name: row.assignee_name || row.assignee || '' }] : []),
+      assignees,
       createdById: row.created_by,
       deadline: row.deadline ? new Date(row.deadline) : undefined,
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
@@ -173,7 +161,7 @@ export class Task extends AggregateRoot<TaskProps> {
     }
   }
 
-  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assigneeId' | 'assigneeName' | 'assignees' | 'deadline' | 'checklist' | 'attachments'>>): void {
+  public update(props: Partial<Pick<TaskProps, 'title' | 'description' | 'priority' | 'assignees' | 'deadline' | 'checklist' | 'attachments'>>): void {
     if (props.title !== undefined) {
       this.props.title = props.title.trim();
     }
@@ -182,12 +170,6 @@ export class Task extends AggregateRoot<TaskProps> {
     }
     if (props.priority !== undefined) {
       this.props.priority = props.priority;
-    }
-    if (props.assigneeId !== undefined) {
-      this.props.assigneeId = props.assigneeId;
-    }
-    if (props.assigneeName !== undefined) {
-      this.props.assigneeName = props.assigneeName;
     }
     if (props.assignees !== undefined) {
       this.props.assignees = props.assignees;

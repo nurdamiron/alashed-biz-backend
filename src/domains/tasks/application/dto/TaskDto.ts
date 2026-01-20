@@ -24,9 +24,7 @@ export interface TaskDto {
   description?: string;
   status: string;
   priority: string;
-  assigneeId?: number;    // Legacy - для обратной совместимости
-  assigneeName?: string;  // Legacy - для обратной совместимости
-  assignees: TaskAssigneeDto[]; // Новое - массив исполнителей
+  assignees: TaskAssigneeDto[];
   createdById?: number;
   deadline?: string;
   completedAt?: string;
@@ -42,8 +40,7 @@ export interface CreateTaskDto {
   title: string;
   description?: string;
   priority?: string;
-  assigneeId?: number;     // Legacy - для обратной совместимости
-  assigneeIds?: number[];  // Новое - массив ID исполнителей
+  assigneeIds?: number[];
   deadline?: string;
   createdById?: number;
   checklist?: ChecklistItemDto[];
@@ -55,8 +52,7 @@ export interface UpdateTaskDto {
   title?: string;
   description?: string;
   priority?: string;
-  assigneeId?: number;     // Legacy - для обратной совместимости
-  assigneeIds?: number[];  // Новое - массив ID исполнителей
+  assigneeIds?: number[];
   deadline?: string;
   checklist?: ChecklistItemDto[];
   attachments?: string[];

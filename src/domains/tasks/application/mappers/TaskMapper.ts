@@ -9,8 +9,6 @@ export class TaskMapper {
       description: task.description,
       status: task.status.toRussian(),
       priority: task.priority.toRussian(),
-      assigneeId: task.assigneeId,
-      assigneeName: task.assigneeName,
       assignees: task.assignees.map((a): TaskAssigneeDto => ({
         id: a.id,
         name: a.name,

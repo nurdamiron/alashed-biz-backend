@@ -1,12 +1,13 @@
 import { UseCase } from '../../../../shared/application/UseCase.js';
 import { Result } from '../../../../shared/application/Result.js';
 import { ITaskRepository } from '../../domain/repositories/ITaskRepository.js';
+import { TaskAssignee } from '../../domain/entities/Task.js';
 import { TaskId } from '../../domain/value-objects/TaskId.js';
 import { TaskPriority } from '../../domain/value-objects/TaskPriority.js';
 import { ChecklistItem } from '../../domain/value-objects/ChecklistItem.js';
 import { UpdateTaskDto, TaskDto } from '../dto/TaskDto.js';
 import { TaskMapper } from '../mappers/TaskMapper.js';
-import { PostgresTaskRepository } from '../../infrastructure/repositories/PostgresTaskRepository.js';
+import { query } from '../../../../shared/infrastructure/database/PostgresConnection.js';
 
 export class UpdateTaskHandler implements UseCase<UpdateTaskDto, TaskDto> {
   constructor(private readonly taskRepository: ITaskRepository) { }
@@ -25,15 +26,25 @@ export class UpdateTaskHandler implements UseCase<UpdateTaskDto, TaskDto> {
         ChecklistItem.fromData(item)
       );
 
-      // Поддержка как одного assigneeId, так и массива assigneeIds
-      const assigneeIds = request.assigneeIds || (request.assigneeId ? [request.assigneeId] : undefined);
-      const primaryAssigneeId = assigneeIds && assigneeIds.length > 0 ? assigneeIds[0] : request.assigneeId;
+      // Fetch assignee names if assigneeIds provided
+      let assignees: TaskAssignee[] | undefined;
+      if (request.assigneeIds) {
+        if (request.assigneeIds.length > 0) {
+          const result = await query(
+            `SELECT id, name FROM employees WHERE id = ANY($1)`,
+            [request.assigneeIds]
+          );
+          assignees = result.rows.map(row => ({ id: row.id, name: row.name }));
+        } else {
+          assignees = [];
+        }
+      }
 
       task.update({
         title: request.title,
         description: request.description,
         priority: request.priority ? TaskPriority.create(request.priority) : undefined,
-        assigneeId: primaryAssigneeId,
+        assignees,
         deadline: request.deadline ? new Date(request.deadline) : undefined,
         checklist,
         attachments: request.attachments,
@@ -41,12 +52,7 @@ export class UpdateTaskHandler implements UseCase<UpdateTaskDto, TaskDto> {
 
       await this.taskRepository.update(task);
 
-      // Обновляем исполнителей в task_assignees если переданы assigneeIds
-      if (assigneeIds && this.taskRepository instanceof PostgresTaskRepository) {
-        await this.taskRepository.saveAssignees(request.taskId, assigneeIds);
-      }
-
-      // Перезагружаем задачу чтобы получить актуальных исполнителей
+      // Reload task to get updated assignees
       const reloadedTask = await this.taskRepository.findById(taskId);
 
       return Result.ok(TaskMapper.toDto(reloadedTask || task));

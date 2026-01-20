@@ -8,10 +8,7 @@ import { TaskStatus } from '../../domain/value-objects/TaskStatus.js';
 export class PostgresTaskRepository implements ITaskRepository {
   async findById(id: TaskId): Promise<Task | null> {
     const taskResult = await query(
-      `SELECT t.*, e.name as assignee_name
-       FROM tasks t
-       LEFT JOIN employees e ON t.assignee_id = e.id OR t.employee_id = e.id
-       WHERE t.id = $1`,
+      `SELECT t.* FROM tasks t WHERE t.id = $1`,
       [id.value]
     );
 
@@ -43,32 +40,37 @@ export class PostgresTaskRepository implements ITaskRepository {
   }
 
   async findAll(filters?: TaskFilters, pagination?: PaginationParams): Promise<Task[]> {
-    let sql = `
-      SELECT t.*, e.name as assignee_name
-      FROM tasks t
-      LEFT JOIN employees e ON t.assignee_id = e.id OR t.employee_id = e.id
-      WHERE 1=1
-    `;
     const params: any[] = [];
     let paramIndex = 1;
+    let whereClause = '1=1';
 
     if (filters?.status) {
-      sql += ` AND t.status = $${paramIndex++}`;
+      whereClause += ` AND t.status = $${paramIndex++}`;
       params.push(filters.status.value);
     }
 
-    if (filters?.assigneeId) {
-      sql += ` AND (t.assignee_id = $${paramIndex} OR t.employee_id = $${paramIndex++})`;
-      params.push(filters.assigneeId);
-    }
-
     if (filters?.priority) {
-      sql += ` AND t.priority = $${paramIndex++}`;
+      whereClause += ` AND t.priority = $${paramIndex++}`;
       params.push(filters.priority);
     }
 
     if (filters?.isOverdue) {
-      sql += ` AND t.deadline < NOW() AND t.status NOT IN ('completed', 'cancelled')`;
+      whereClause += ` AND t.deadline < NOW() AND t.status NOT IN ('completed', 'cancelled')`;
+    }
+
+    let sql: string;
+
+    if (filters?.assigneeId) {
+      // Use subquery when filtering by assignee to avoid DISTINCT issues
+      sql = `
+        SELECT t.* FROM tasks t
+        WHERE t.id IN (
+          SELECT ta.task_id FROM task_assignees ta WHERE ta.employee_id = $${paramIndex++}
+        ) AND ${whereClause}
+      `;
+      params.push(filters.assigneeId);
+    } else {
+      sql = `SELECT t.* FROM tasks t WHERE ${whereClause}`;
     }
 
     sql += ` ORDER BY
@@ -128,15 +130,14 @@ export class PostgresTaskRepository implements ITaskRepository {
     const checklistJson = JSON.stringify(task.checklist.map(item => item.toData()));
 
     const result = await query(
-      `INSERT INTO tasks (title, description, status, priority, assignee_id, created_by, deadline, created_at, updated_at, checklist, attachments)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO tasks (title, description, status, priority, created_by, deadline, created_at, updated_at, checklist, attachments)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         task.title,
         task.description,
         task.status.value,
         task.priority.value,
-        task.assigneeId,
         task.createdById,
         task.deadline,
         task.createdAt,
@@ -146,7 +147,14 @@ export class PostgresTaskRepository implements ITaskRepository {
       ]
     );
 
-    task.setId(TaskId.create(result.rows[0].id));
+    const taskId = result.rows[0].id;
+    task.setId(TaskId.create(taskId));
+
+    // Save assignees to task_assignees table
+    if (task.assignees.length > 0) {
+      await this.saveAssignees(taskId, task.assignees.map(a => a.id));
+    }
+
     return task;
   }
 
@@ -156,13 +164,12 @@ export class PostgresTaskRepository implements ITaskRepository {
 
     await query(
       `UPDATE tasks
-       SET title = $1, description = $2, priority = $3, assignee_id = $4, deadline = $5, updated_at = $6, checklist = $7, attachments = $8
-       WHERE id = $9`,
+       SET title = $1, description = $2, priority = $3, deadline = $4, updated_at = $5, checklist = $6, attachments = $7
+       WHERE id = $8`,
       [
         task.title,
         task.description,
         task.priority.value,
-        task.assigneeId,
         task.deadline,
         task.updatedAt,
         checklistJson,
@@ -170,6 +177,11 @@ export class PostgresTaskRepository implements ITaskRepository {
         task.id?.value,
       ]
     );
+
+    // Update assignees
+    if (task.id) {
+      await this.saveAssignees(task.id.value, task.assignees.map(a => a.id));
+    }
   }
 
   async updateStatus(id: TaskId, status: TaskStatus): Promise<void> {
@@ -206,18 +218,26 @@ export class PostgresTaskRepository implements ITaskRepository {
   }
 
   async count(filters?: TaskFilters): Promise<number> {
-    let sql = `SELECT COUNT(*) FROM tasks WHERE 1=1`;
+    let sql = `SELECT COUNT(DISTINCT t.id) FROM tasks t`;
     const params: any[] = [];
     let paramIndex = 1;
+    let hasAssigneeFilter = false;
+
+    if (filters?.assigneeId) {
+      sql += ` JOIN task_assignees ta ON t.id = ta.task_id`;
+      hasAssigneeFilter = true;
+    }
+
+    sql += ` WHERE 1=1`;
 
     if (filters?.status) {
-      sql += ` AND status = $${paramIndex++}`;
+      sql += ` AND t.status = $${paramIndex++}`;
       params.push(filters.status.value);
     }
 
-    if (filters?.assigneeId) {
-      sql += ` AND (assignee_id = $${paramIndex} OR employee_id = $${paramIndex++})`;
-      params.push(filters.assigneeId);
+    if (hasAssigneeFilter) {
+      sql += ` AND ta.employee_id = $${paramIndex++}`;
+      params.push(filters!.assigneeId);
     }
 
     const result = await query(sql, params);
@@ -226,9 +246,10 @@ export class PostgresTaskRepository implements ITaskRepository {
 
   async countByAssignee(assigneeId: number): Promise<number> {
     const result = await query(
-      `SELECT COUNT(*) FROM tasks
-       WHERE (assignee_id = $1 OR employee_id = $1)
-       AND status NOT IN ('completed', 'cancelled')`,
+      `SELECT COUNT(DISTINCT t.id) FROM tasks t
+       JOIN task_assignees ta ON t.id = ta.task_id
+       WHERE ta.employee_id = $1
+       AND t.status NOT IN ('completed', 'cancelled')`,
       [assigneeId]
     );
     return parseInt(result.rows[0].count, 10);
