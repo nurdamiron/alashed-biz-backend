@@ -151,6 +151,33 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
+  // Test daily quote (admin only)
+  app.post(
+    '/push/test-quote',
+    { preHandler: [authMiddleware] },
+    async (req, reply) => {
+      const user = getAuthUser(req);
+
+      if (user.role !== 'admin') {
+        return reply.status(403).send({ error: 'Admin access required' });
+      }
+
+      const { isMorning } = req.body as { isMorning?: boolean };
+
+      try {
+        const quote = await c.quoteScheduler.sendTestQuote(isMorning ?? true);
+        return reply.send({
+          success: true,
+          quote,
+          type: isMorning !== false ? 'morning' : 'evening',
+        });
+      } catch (error) {
+        console.error('Test quote error:', error);
+        return reply.status(500).send({ error: 'Failed to send test quote' });
+      }
+    }
+  );
+
   // Debug endpoint - get subscription stats (admin only)
   app.get(
     '/push/debug',

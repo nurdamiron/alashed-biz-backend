@@ -69,6 +69,9 @@ import { WebSocketService } from '../shared/infrastructure/websocket/WebSocketSe
 import { GeminiProvider } from '../domains/ai/infrastructure/providers/GeminiProvider.js';
 import { SendMessageHandler } from '../domains/ai/application/handlers/SendMessageHandler.js';
 
+// Scheduler
+import { QuoteScheduler } from '../shared/infrastructure/scheduler/QuoteScheduler.js';
+
 // Suppliers
 import { PostgresSupplierRepository } from '../domains/suppliers/infrastructure/repositories/PostgresSupplierRepository.js';
 import { CreateSupplierHandler } from '../domains/suppliers/application/handlers/CreateSupplierHandler.js';
@@ -168,6 +171,9 @@ export interface Container {
   // AI
   geminiProvider: GeminiProvider;
   sendMessageHandler: SendMessageHandler;
+
+  // Scheduler
+  quoteScheduler: QuoteScheduler;
 
   // Suppliers
   supplierRepository: PostgresSupplierRepository;
@@ -285,6 +291,10 @@ export function initContainer(): Container {
   // ==================== AI Handlers ====================
   const sendMessageHandler = new SendMessageHandler(geminiProvider);
 
+  // ==================== Scheduler ====================
+  const quoteScheduler = new QuoteScheduler(geminiProvider, pushService);
+  quoteScheduler.start(); // Start the daily quote scheduler
+
   // ==================== Suppliers Handlers ====================
   const createSupplierHandler = new CreateSupplierHandler(supplierRepository);
   const getSuppliersHandler = new GetSuppliersHandler(supplierRepository);
@@ -368,6 +378,9 @@ export function initContainer(): Container {
     // AI
     geminiProvider,
     sendMessageHandler,
+
+    // Scheduler
+    quoteScheduler,
 
     // Suppliers
     supplierRepository,
