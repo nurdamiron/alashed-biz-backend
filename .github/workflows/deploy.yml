@@ -49,7 +49,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-08eb56616ddb569bc" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[\"cd /home/ubuntu && curl -o be.tar.gz '${{ steps.presign.outputs.url }}' && tar -xzf be.tar.gz && npm ci --omit=dev && chown -R ubuntu:ubuntu . && sudo -u ubuntu HOME=/home/ubuntu pm2 restart alashed-api && rm be.tar.gz && echo Backend deployed\"]" \
+            --parameters "commands=[\"cd /home/ubuntu && rm -rf dist be.tar.gz && curl -o be.tar.gz '${{ steps.presign.outputs.url }}' && tar -xzf be.tar.gz && npm ci --omit=dev && chown -R ubuntu:ubuntu dist package.json package-lock.json node_modules && sudo -u ubuntu HOME=/home/ubuntu pm2 restart alashed-api && rm be.tar.gz && echo Backend deployed\"]" \
             --query "Command.CommandId" \
             --output text)
 
