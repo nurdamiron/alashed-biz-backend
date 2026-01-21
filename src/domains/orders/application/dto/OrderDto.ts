@@ -22,6 +22,7 @@ export interface OrderDto {
   paymentStatus: string;
   deliveryAddress?: string;
   notes?: string;
+  source?: string;
   createdAt: string;
   updatedAt: string;
 }

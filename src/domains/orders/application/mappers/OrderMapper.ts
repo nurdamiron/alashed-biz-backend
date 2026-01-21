@@ -25,6 +25,7 @@ export class OrderMapper {
       paymentStatus: order.paymentStatus,
       deliveryAddress: order.deliveryAddress,
       notes: order.notes,
+      source: order.source || 'Магазин',
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
     };
