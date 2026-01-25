@@ -79,11 +79,12 @@ export class TaskReminderService {
         t.deadline,
         t.priority,
         t.status,
-        t.assignee_id,
+        ta.employee_id as assignee_id,
         e.user_id,
         EXTRACT(EPOCH FROM (t.deadline - NOW())) / 3600 as hours_until_deadline
       FROM tasks t
-      INNER JOIN employees e ON t.assignee_id = e.id
+      INNER JOIN task_assignees ta ON t.id = ta.task_id
+      INNER JOIN employees e ON ta.employee_id = e.id
       WHERE
         t.status IN ('pending', 'in_progress')
         AND t.deadline IS NOT NULL
