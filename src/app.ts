@@ -1,6 +1,7 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -13,20 +14,50 @@ import { initContainer } from './di/container.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: {
-      level: config.isDev ? 'info' : 'warn',
-    },
+    logger: config.isDev
+      ? {
+          level: 'info',
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'HH:MM:ss',
+              ignore: 'pid,hostname',
+              singleLine: false,
+            },
+          },
+        }
+      : {
+          level: 'warn',
+          // Structured JSON logs for production
+          formatters: {
+            level: (label) => ({ level: label }),
+            bindings: (bindings) => ({
+              pid: bindings.pid,
+              host: bindings.hostname,
+              service: 'alashed-api',
+              version: '2.0.0',
+            }),
+          },
+          timestamp: () => `,"time":"${new Date().toISOString()}"`,
+        },
   });
 
-  // CORS
+  // CORS - allow all origins for now
   await app.register(cors, {
-    origin: config.cors.allowedOrigins,
+    origin: true,
     credentials: true,
   });
 
   // JWT
   await app.register(jwt, {
     secret: config.jwt.secret,
+  });
+
+  // Rate Limiting (simplified)
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
   });
 
   // WebSocket
@@ -88,9 +119,41 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register routes
   await registerRoutes(app);
 
+  // Request logging hook
+  app.addHook('onRequest', async (request) => {
+    request.log.info({
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers['user-agent'],
+      ip: request.ip,
+    }, 'incoming request');
+  });
+
+  // Response logging hook
+  app.addHook('onResponse', async (request, reply) => {
+    request.log.info({
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      responseTime: reply.elapsedTime,
+    }, 'request completed');
+  });
+
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
-    app.log.error(error);
+    console.error('=== ERROR DETAILS ===');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('URL:', request.url);
+    console.error('Method:', request.method);
+    console.error('=====================');
+
+    request.log.error({
+      err: error,
+      method: request.method,
+      url: request.url,
+      statusCode: error.statusCode || 500,
+    }, 'request error');
 
     if (error.validation) {
       return reply.status(400).send({
@@ -99,7 +162,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       });
     }
 
-    return reply.status(500).send({
+    return reply.status(error.statusCode || 500).send({
       error: config.isDev ? error.message : 'Internal Server Error',
     });
   });

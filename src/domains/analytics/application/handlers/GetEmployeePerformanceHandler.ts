@@ -24,8 +24,9 @@ export class GetEmployeePerformanceHandler implements UseCase<GetEmployeePerform
           COUNT(DISTINCT o.id) as orders_processed,
           COALESCE(SUM(CASE WHEN o.status = 'delivered' THEN o.total_amount ELSE 0 END), 0) as total_revenue,
           COALESCE(AVG(CASE WHEN o.status = 'delivered' THEN o.total_amount ELSE NULL END), 0) as average_order_value,
-          (SELECT COUNT(*) FROM tasks t
-           WHERE (t.assignee_id = e.id OR t.employee_id = e.id)
+          (SELECT COUNT(DISTINCT t.id) FROM tasks t
+           JOIN task_assignees ta ON t.id = ta.task_id
+           WHERE ta.employee_id = e.id
            AND t.status = 'completed'
            AND t.completed_at >= $1::date
            AND t.completed_at < ($2::date + INTERVAL '1 day')) as tasks_completed

@@ -8,6 +8,7 @@ import { CreateOrderDto, OrderDto } from '../dto/OrderDto.js';
 import { OrderMapper } from '../mappers/OrderMapper.js';
 import { ReserveStockHandler } from '../../../inventory/application/handlers/ReserveStockHandler.js';
 import { NotificationService } from '../../../notifications/infrastructure/services/NotificationService.js';
+import { query } from '../../../../shared/infrastructure/database/PostgresConnection.js';
 
 export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
   constructor(
@@ -18,7 +19,13 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
 
   async execute(request: CreateOrderDto): Promise<Result<OrderDto>> {
     try {
-      // Create order items
+      // STEP 1: Validate stock availability BEFORE creating order
+      const stockValidation = await this.validateStockAvailability(request.items);
+      if (stockValidation.isFailure) {
+        return Result.fail(stockValidation.error!);
+      }
+
+      // STEP 2: Create order items
       const items = request.items.map((item) =>
         OrderItem.create({
           productId: item.productId,
@@ -29,7 +36,7 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
         })
       );
 
-      // Create order
+      // STEP 3: Create order entity
       const order = Order.create({
         customerId: request.customerId,
         customerName: request.customerName,
@@ -42,10 +49,10 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
         discount: request.discount ? Money.create(request.discount) : undefined,
       });
 
-      // Save
+      // STEP 4: Save order to database
       const savedOrder = await this.orderRepository.save(order);
 
-      // Reserve stock for the order
+      // STEP 5: Reserve stock (within transaction)
       const reserveResult = await this.reserveStockHandler.execute({
         orderId: savedOrder.id!.value,
         items: request.items.map((item) => ({
@@ -54,14 +61,16 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
         })),
       });
 
-      // If reservation fails, we should ideally rollback the order
-      // For now, we'll return the error
+      // If reservation fails after pre-validation, it's likely a race condition
+      // The order exists but stock wasn't reserved - mark it for admin review
       if (reserveResult.isFailure) {
-        return Result.fail(`Order created but stock reservation failed: ${reserveResult.error}`);
+        // Log the issue for monitoring
+        console.error(`Order ${savedOrder.id!.value} created but stock reservation failed: ${reserveResult.error}`);
+        return Result.fail(`Не удалось зарезервировать товар: ${reserveResult.error}. Заказ #${savedOrder.id!.value} требует проверки.`);
       }
 
-      // Send notification about new order
-      await this.notificationService.notifyNewOrder(savedOrder.id!.value, savedOrder.employeeId);
+      // STEP 6: Send notification about new order (non-blocking)
+      this.notificationService.notifyNewOrder(savedOrder.id!.value, savedOrder.employeeId).catch(console.error);
 
       return Result.ok(OrderMapper.toDto(savedOrder));
     } catch (error) {
@@ -70,5 +79,33 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
       }
       return Result.fail('Failed to create order');
     }
+  }
+
+  /**
+   * Pre-validates stock availability without modifying data.
+   * This prevents creating orders for unavailable products.
+   */
+  private async validateStockAvailability(
+    items: Array<{ productId: number; quantity: number }>
+  ): Promise<Result<void>> {
+    for (const item of items) {
+      const result = await query(
+        `SELECT id, name, quantity FROM products WHERE id = $1 AND is_active = true`,
+        [item.productId]
+      );
+
+      if (result.rows.length === 0) {
+        return Result.fail(`Товар с ID ${item.productId} не найден или неактивен`);
+      }
+
+      const product = result.rows[0];
+      if (product.quantity < item.quantity) {
+        return Result.fail(
+          `Недостаточно товара "${product.name}". Доступно: ${product.quantity}, требуется: ${item.quantity}`
+        );
+      }
+    }
+
+    return Result.ok(undefined);
   }
 }

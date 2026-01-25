@@ -4,6 +4,11 @@ import { Task } from '@/domains/tasks/domain/entities/Task.js';
 import { TaskId } from '@/domains/tasks/domain/value-objects/TaskId.js';
 import { TaskPriority } from '@/domains/tasks/domain/value-objects/TaskPriority.js';
 
+// Mock the database query
+vi.mock('@/shared/infrastructure/database/PostgresConnection.js', () => ({
+    query: vi.fn().mockResolvedValue({ rows: [{ id: 101, name: 'Test Employee' }] }),
+}));
+
 // Mock dependencies
 const mockTaskRepository = {
     save: vi.fn(),
@@ -28,12 +33,12 @@ describe('CreateTaskHandler', () => {
         );
     });
 
-    it('should create task and notify assignee if assigneeId is provided', async () => {
+    it('should create task and notify assignees if assigneeIds is provided', async () => {
         const request = {
             title: 'Test Task',
             description: 'Test Description',
             priority: 'high',
-            assigneeId: 101, // Employee ID
+            assigneeIds: [101], // Employee IDs
             createdById: 1,
             deadline: new Date().toISOString(),
             attachments: ['http://localhost:3000/uploads/test.jpg'],
@@ -43,15 +48,16 @@ describe('CreateTaskHandler', () => {
         const mockSavedTask = Task.create({
             title: request.title,
             description: request.description,
-            priority: TaskPriority.create('high'), // Valid priority
-            assigneeId: request.assigneeId,
+            priority: TaskPriority.create('high'),
             createdById: request.createdById,
             attachments: request.attachments,
+            assignees: [{ id: 101, name: 'Test Employee' }],
         });
         // Manually set ID for the saved task since it comes from DB
         (mockSavedTask as any).props.id = TaskId.create(123);
 
         mockTaskRepository.save.mockResolvedValue(mockSavedTask);
+        mockTaskRepository.findById.mockResolvedValue(mockSavedTask);
 
         const result = await handler.execute(request);
 
@@ -75,24 +81,25 @@ describe('CreateTaskHandler', () => {
         );
     });
 
-    it('should create task but NOT notify if no assigneeId', async () => {
+    it('should create task but NOT notify if no assigneeIds', async () => {
         const request = {
             title: 'Unassigned Task',
-            assigneeId: undefined,
+            assigneeIds: [],
             createdById: 1,
         };
 
         const mockSavedTask = Task.create({
             title: request.title,
             description: '',
-            assigneeId: undefined,
             createdById: 1,
-            priority: TaskPriority.create('medium'), // Fix: Provide valid priority
+            priority: TaskPriority.create('medium'),
             attachments: [],
+            assignees: [],
         });
         (mockSavedTask as any).props.id = TaskId.create(124);
 
         mockTaskRepository.save.mockResolvedValue(mockSavedTask);
+        mockTaskRepository.findById.mockResolvedValue(mockSavedTask);
 
         const result = await handler.execute(request);
 

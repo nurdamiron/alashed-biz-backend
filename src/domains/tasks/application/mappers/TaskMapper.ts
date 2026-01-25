@@ -1,5 +1,5 @@
 import { Task } from '../../domain/entities/Task.js';
-import { TaskDto, TaskCommentDto, ChecklistItemDto } from '../dto/TaskDto.js';
+import { TaskDto, TaskCommentDto, ChecklistItemDto, TaskAssigneeDto } from '../dto/TaskDto.js';
 
 export class TaskMapper {
   static toDto(task: Task): TaskDto {
@@ -9,8 +9,10 @@ export class TaskMapper {
       description: task.description,
       status: task.status.toRussian(),
       priority: task.priority.toRussian(),
-      assigneeId: task.assigneeId,
-      assigneeName: task.assigneeName,
+      assignees: task.assignees.map((a): TaskAssigneeDto => ({
+        id: a.id,
+        name: a.name,
+      })),
       createdById: task.createdById,
       deadline: task.deadline?.toISOString(),
       completedAt: task.completedAt?.toISOString(),

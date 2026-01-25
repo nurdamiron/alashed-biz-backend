@@ -57,6 +57,10 @@ import { DeleteEmployeeHandler } from '../domains/staff/application/handlers/Del
 import { GetNotificationsHandler } from '../domains/notifications/application/handlers/GetNotificationsHandler.js';
 import { MarkAllReadHandler } from '../domains/notifications/application/handlers/MarkAllReadHandler.js';
 import { NotificationService } from '../domains/notifications/infrastructure/services/NotificationService.js';
+import { PushService } from '../domains/notifications/infrastructure/services/PushService.js';
+
+// SMS
+import { SmsService } from '../domains/sms/infrastructure/services/SmsService.js';
 
 // Task Scheduler
 import { TaskReminderService } from '../domains/tasks/infrastructure/services/TaskReminderService.js';
@@ -68,6 +72,9 @@ import { WebSocketService } from '../shared/infrastructure/websocket/WebSocketSe
 // AI
 import { GeminiProvider } from '../domains/ai/infrastructure/providers/GeminiProvider.js';
 import { SendMessageHandler } from '../domains/ai/application/handlers/SendMessageHandler.js';
+
+// Scheduler
+import { QuoteScheduler } from '../shared/infrastructure/scheduler/QuoteScheduler.js';
 
 // Suppliers
 import { PostgresSupplierRepository } from '../domains/suppliers/infrastructure/repositories/PostgresSupplierRepository.js';
@@ -157,6 +164,8 @@ export interface Container {
 
   // Notifications
   notificationService: NotificationService;
+  pushService: PushService;
+  smsService: SmsService;
   getNotificationsHandler: GetNotificationsHandler;
   markAllReadHandler: MarkAllReadHandler;
 
@@ -170,6 +179,9 @@ export interface Container {
   // AI
   geminiProvider: GeminiProvider;
   sendMessageHandler: SendMessageHandler;
+
+  // Scheduler
+  quoteScheduler: QuoteScheduler;
 
   // Suppliers
   supplierRepository: PostgresSupplierRepository;
@@ -206,8 +218,11 @@ export function initContainer(): Container {
 
   // ==================== Services ====================
   const webSocketService = new WebSocketService();
+  const pushService = new PushService();
+  const smsService = new SmsService();
   const notificationService = new NotificationService();
   notificationService.setWebSocketService(webSocketService);
+  notificationService.setPushService(pushService);
 
   // Task Reminder Services
   const taskReminderService = new TaskReminderService(notificationService);
@@ -288,6 +303,10 @@ export function initContainer(): Container {
   // ==================== AI Handlers ====================
   const sendMessageHandler = new SendMessageHandler(geminiProvider);
 
+  // ==================== Scheduler ====================
+  const quoteScheduler = new QuoteScheduler(geminiProvider, pushService);
+  quoteScheduler.start(); // Start the daily quote scheduler
+
   // ==================== Suppliers Handlers ====================
   const createSupplierHandler = new CreateSupplierHandler(supplierRepository);
   const getSuppliersHandler = new GetSuppliersHandler(supplierRepository);
@@ -358,8 +377,10 @@ export function initContainer(): Container {
     updateEmployeeHandler,
     deleteEmployeeHandler,
 
-    // Notifications
+    // Notifications & SMS
     notificationService,
+    pushService,
+    smsService,
     getNotificationsHandler,
     markAllReadHandler,
 
@@ -373,6 +394,9 @@ export function initContainer(): Container {
     // AI
     geminiProvider,
     sendMessageHandler,
+
+    // Scheduler
+    quoteScheduler,
 
     // Suppliers
     supplierRepository,

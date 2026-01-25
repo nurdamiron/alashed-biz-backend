@@ -1,0 +1,74 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Create deployment package
+        run: tar -czf backend.tar.gz dist package.json package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: Upload to S3
+        run: aws s3 cp backend.tar.gz s3://alashed-media/deploy/backend.tar.gz
+
+      - name: Get presigned URL
+        id: presign
+        run: |
+          URL=$(aws s3 presign s3://alashed-media/deploy/backend.tar.gz --expires-in 300)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Deploy to EC2
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-08eb56616ddb569bc" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[\"cd /home/ubuntu && rm -rf dist be.tar.gz && curl -o be.tar.gz '${{ steps.presign.outputs.url }}' && tar -xzf be.tar.gz && npm ci --omit=dev && chown -R ubuntu:ubuntu dist package.json package-lock.json node_modules && sudo -u ubuntu HOME=/home/ubuntu pm2 restart alashed-api && rm be.tar.gz && echo Backend deployed\"]" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+          sleep 30
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-08eb56616ddb569bc" \
+            --query "Status" \
+            --output text)
+
+          echo "Status: $STATUS"
+
+          if [ "$STATUS" = "Failed" ]; then
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "i-08eb56616ddb569bc" \
+              --query "StandardErrorContent" \
+              --output text
+            exit 1
+          fi

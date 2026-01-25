@@ -27,10 +27,11 @@ export class GetEmployeesHandler implements UseCase<GetEmployeesRequest, Employe
       const employeesWithTasks = await Promise.all(
         employees.map(async (employee) => {
           const tasksResult = await query(
-            `SELECT COUNT(*) as active_tasks_count
-             FROM tasks
-             WHERE (assignee_id = $1 OR employee_id = $1)
-             AND status NOT IN ('completed', 'cancelled')`,
+            `SELECT COUNT(DISTINCT t.id) as active_tasks_count
+             FROM tasks t
+             JOIN task_assignees ta ON t.id = ta.task_id
+             WHERE ta.employee_id = $1
+             AND t.status NOT IN ('completed', 'cancelled')`,
             [employee.id!.value]
           );
 

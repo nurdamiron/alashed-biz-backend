@@ -5,11 +5,23 @@ import { authMiddleware, getAuthUser } from '../../middleware/authMiddleware.js'
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   const container = getContainer();
 
-  // POST /api/auth/login
-  app.post('/auth/login', async (request, reply) => {
-    const { email, password } = request.body as { email: string; password: string };
+  // POST /api/auth/login (with stricter rate limit for brute force protection)
+  app.post('/auth/login', {
+    config: {
+      rateLimit: {
+        max: 100, // Increased for testing
+        timeWindow: '1 minute',
+        keyGenerator: (request) => request.ip,
+        errorResponseBuilder: () => ({
+          error: 'Too Many Login Attempts',
+          message: 'Слишком много попыток входа. Попробуйте через минуту.',
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { username, password } = request.body as { username: string; password: string };
 
-    const result = await container.loginHandler.execute({ email, password });
+    const result = await container.loginHandler.execute({ username, password });
 
     if (result.isFailure) {
       return reply.status(401).send({ error: result.error });

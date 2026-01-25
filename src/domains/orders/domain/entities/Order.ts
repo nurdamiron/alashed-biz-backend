@@ -19,6 +19,7 @@ export interface OrderProps {
   paymentStatus: string;
   deliveryAddress?: string;
   notes?: string;
+  source?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,6 +77,10 @@ export class Order extends AggregateRoot<OrderProps> {
     return this.props.notes;
   }
 
+  get source(): string | undefined {
+    return this.props.source;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -128,6 +133,7 @@ export class Order extends AggregateRoot<OrderProps> {
       paymentStatus: row.payment_status || 'unpaid',
       deliveryAddress: row.delivery_address,
       notes: row.notes,
+      source: row.source || 'Магазин',
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     });
