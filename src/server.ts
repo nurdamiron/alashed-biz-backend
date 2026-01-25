@@ -4,6 +4,7 @@ import './polyfills.js';
 import { buildApp } from './app.js';
 import { config, validateConfig } from './config/index.js';
 import { closePool } from './shared/infrastructure/database/PostgresConnection.js';
+import { getContainer } from './di/container.js';
 
 async function start(): Promise<void> {
   // Validate config
@@ -12,11 +13,21 @@ async function start(): Promise<void> {
   // Build app
   const app = await buildApp();
 
+  // Get container and start task scheduler
+  const container = getContainer();
+  container.taskSchedulerService.start();
+  console.log('✅ Task reminder scheduler started');
+
   // Graceful shutdown
   const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
   signals.forEach((signal) => {
     process.on(signal, async () => {
       app.log.info(`Received ${signal}, shutting down gracefully...`);
+
+      // Stop task scheduler
+      container.taskSchedulerService.stop();
+      app.log.info('Task scheduler stopped');
+
       await app.close();
       await closePool();
       process.exit(0);

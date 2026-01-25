@@ -58,6 +58,10 @@ import { GetNotificationsHandler } from '../domains/notifications/application/ha
 import { MarkAllReadHandler } from '../domains/notifications/application/handlers/MarkAllReadHandler.js';
 import { NotificationService } from '../domains/notifications/infrastructure/services/NotificationService.js';
 
+// Task Scheduler
+import { TaskReminderService } from '../domains/tasks/infrastructure/services/TaskReminderService.js';
+import { TaskSchedulerService } from '../domains/tasks/infrastructure/services/TaskSchedulerService.js';
+
 // WebSocket
 import { WebSocketService } from '../shared/infrastructure/websocket/WebSocketService.js';
 
@@ -156,6 +160,10 @@ export interface Container {
   getNotificationsHandler: GetNotificationsHandler;
   markAllReadHandler: MarkAllReadHandler;
 
+  // Task Scheduler
+  taskReminderService: TaskReminderService;
+  taskSchedulerService: TaskSchedulerService;
+
   // WebSocket
   webSocketService: WebSocketService;
 
@@ -200,6 +208,10 @@ export function initContainer(): Container {
   const webSocketService = new WebSocketService();
   const notificationService = new NotificationService();
   notificationService.setWebSocketService(webSocketService);
+
+  // Task Reminder Services
+  const taskReminderService = new TaskReminderService(notificationService);
+  const taskSchedulerService = new TaskSchedulerService(taskReminderService);
 
   // ==================== Auth Handlers ====================
   const loginHandler = new LoginHandler(userRepository);
@@ -350,6 +362,10 @@ export function initContainer(): Container {
     notificationService,
     getNotificationsHandler,
     markAllReadHandler,
+
+    // Task Scheduler
+    taskReminderService,
+    taskSchedulerService,
 
     // WebSocket
     webSocketService,
