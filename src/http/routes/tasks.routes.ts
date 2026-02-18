@@ -9,7 +9,7 @@ export async function tasksRoutes(app: FastifyInstance): Promise<void> {
     const { status, assigneeId, priority, limit, offset } = request.query as any;
     const result = await container.getTasksHandler.execute({
       status, assigneeId: assigneeId ? parseInt(assigneeId, 10) : undefined,
-      priority, limit: limit ? parseInt(limit, 10) : 50, offset: offset ? parseInt(offset, 10) : 0,
+      priority, limit: limit ? parseInt(limit, 10) : undefined, offset: offset ? parseInt(offset, 10) : 0,
     });
     if (result.isSuccess && result.value.tasks.length > 0) {
       const firstTask = result.value.tasks[0];
