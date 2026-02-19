@@ -16,7 +16,7 @@ export async function suppliersRoutes(app: FastifyInstance): Promise<void> {
           properties: {
             isActive: { type: 'boolean' },
             search: { type: 'string' },
-            limit: { type: 'integer', default: 50 },
+            limit: { type: 'integer' },
             offset: { type: 'integer', default: 0 },
           },
         },

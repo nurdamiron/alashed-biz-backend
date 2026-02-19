@@ -11,7 +11,7 @@ export async function inventoryRoutes(app: FastifyInstance): Promise<void> {
       categoryId: categoryId ? parseInt(categoryId) : undefined,
       brandId: brandId ? parseInt(brandId) : undefined,
       isLowStock: isLowStock === 'true', isOutOfStock: isOutOfStock === 'true',
-      limit: limit ? parseInt(limit) : 50, offset: offset ? parseInt(offset) : 0,
+      limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : 0,
     });
     return result.isFailure ? reply.status(400).send({ error: result.error }) : reply.send(result.value);
   });

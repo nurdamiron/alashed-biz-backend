@@ -7,7 +7,9 @@ export class GetNotificationsHandler implements UseCase<{ userId: number; limit?
   async execute(req: { userId: number; limit?: number }): Promise<Result<NotificationsListDto>> {
     try {
       const [notifs, counts] = await Promise.all([
-        query(`SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`, [req.userId, req.limit || 50]),
+        req.limit
+          ? query(`SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`, [req.userId, req.limit])
+          : query(`SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`, [req.userId]),
         query(`SELECT COUNT(*) as total, COUNT(CASE WHEN is_read = false THEN 1 END) as unread FROM notifications WHERE user_id = $1`, [req.userId]),
       ]);
       const notifications: NotificationDto[] = notifs.rows.map(r => ({

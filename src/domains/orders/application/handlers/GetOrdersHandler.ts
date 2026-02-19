@@ -14,10 +14,10 @@ export class GetOrdersHandler implements UseCase<GetOrdersQueryDto, OrdersListDt
         ? { status: OrderStatus.create(request.status) }
         : undefined;
 
-      const pagination = {
-        limit: request.limit ?? 50,
+      const pagination = request.limit ? {
+        limit: request.limit,
         offset: request.offset ?? 0,
-      };
+      } : undefined;
 
       const [orders, total] = await Promise.all([
         this.orderRepository.findAll(filters, pagination),

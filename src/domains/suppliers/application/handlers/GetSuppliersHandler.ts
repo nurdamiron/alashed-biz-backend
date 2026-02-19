@@ -14,10 +14,10 @@ export class GetSuppliersHandler implements UseCase<GetSuppliersDto, { suppliers
         search: request.search,
       };
 
-      const pagination = {
-        limit: request.limit || 50,
-        offset: request.offset || 0,
-      };
+      const pagination = request.limit ? {
+        limit: request.limit,
+        offset: request.offset ?? 0,
+      } : undefined;
 
       const [suppliers, total] = await Promise.all([
         this.supplierRepository.findAll(filters, pagination),

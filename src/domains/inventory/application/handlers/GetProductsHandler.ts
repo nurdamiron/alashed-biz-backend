@@ -15,7 +15,7 @@ export class GetProductsHandler implements UseCase<GetProductsQueryDto, Products
       if (request.isLowStock) filters.isLowStock = true;
       if (request.isOutOfStock) filters.isOutOfStock = true;
 
-      const pagination = { limit: request.limit ?? 50, offset: request.offset ?? 0 };
+      const pagination = request.limit ? { limit: request.limit, offset: request.offset ?? 0 } : undefined;
       const [products, total] = await Promise.all([
         this.productRepository.findAll(filters, pagination),
         this.productRepository.count(filters),

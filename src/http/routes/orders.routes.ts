@@ -13,7 +13,7 @@ export async function ordersRoutes(app: FastifyInstance): Promise<void> {
         type: 'object',
         properties: {
           status: { type: 'string' },
-          limit: { type: 'integer', default: 50 },
+          limit: { type: 'integer' },
           offset: { type: 'integer', default: 0 },
         },
       },
