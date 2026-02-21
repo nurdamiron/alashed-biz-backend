@@ -204,7 +204,7 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
           SELECT
             ps.id,
             ps.user_id,
-            u.name as user_name,
+            u.full_name as user_name,
             u.role as user_role,
             CASE
               WHEN ps.endpoint LIKE '%web.push.apple.com%' THEN 'Apple'

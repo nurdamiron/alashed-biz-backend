@@ -14,9 +14,17 @@ CREATE TABLE IF NOT EXISTS task_assignees (
 CREATE INDEX IF NOT EXISTS idx_task_assignees_task_id ON task_assignees(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_assignees_employee_id ON task_assignees(employee_id);
 
--- Migrate existing assignee data to new table
-INSERT INTO task_assignees (task_id, employee_id, assigned_at)
-SELECT id, assignee_id, created_at
-FROM tasks
-WHERE assignee_id IS NOT NULL
-ON CONFLICT (task_id, employee_id) DO NOTHING;
+-- Migrate existing assignee data only if assignee_id column exists and is integer type
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='tasks' AND column_name='assignee_id'
+    AND data_type IN ('integer','bigint','smallint')
+  ) THEN
+    INSERT INTO task_assignees (task_id, employee_id, assigned_at)
+    SELECT id, assignee_id, created_at FROM tasks WHERE assignee_id IS NOT NULL
+    ON CONFLICT (task_id, employee_id) DO NOTHING;
+  END IF;
+  -- Note: if tasks.assignee is varchar (name not id), data migration is skipped safely
+END $$;
