@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install all dependencies
+      - name: Install dependencies
         run: npm ci
 
       - name: Build
@@ -31,16 +31,16 @@ jobs:
 
       - name: Run migrations
         working-directory: /home/ubuntu/alashed-biz
-        run: node dist/scripts/migrate.js
+        run: HOME=/root node dist/scripts/migrate.js
 
       - name: Restart PM2
-        run: HOME=/root pm2 restart alashed-biz && HOME=/root pm2 save
+        run: sudo /usr/bin/pm2 restart alashed-biz && sudo /usr/bin/pm2 save
 
       - name: Health check
         run: |
           sleep 5
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
-          echo "Health check status: $STATUS"
+          echo "Health check: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Health check failed!"
             exit 1
