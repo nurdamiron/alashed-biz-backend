@@ -90,7 +90,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       },
       servers: [
         {
-          url: config.isDev ? `http://localhost:${config.port}` : 'https://api.yourdomain.com',
+          url: config.isDev ? `http://localhost:${config.port}` : 'https://api-biz.alashed.kz',
         },
       ],
       components: {
