@@ -46,39 +46,24 @@ export async function ordersRoutes(app: FastifyInstance): Promise<void> {
   // POST /api/orders
   app.post('/orders', {
     preHandler: [authMiddleware],
-    schema: {
-      body: {
-        type: 'object',
-        required: ['customerId', 'customerName', 'customerPhone', 'items'],
-        properties: {
-          customerId: { type: 'integer' },
-          customerName: { type: 'string' },
-          customerPhone: { type: 'string' },
-          employeeId: { type: 'integer' },
-          items: {
-            type: 'array',
-            minItems: 1,
-            items: {
-              type: 'object',
-              required: ['productId', 'productName', 'quantity', 'unitPrice'],
-              properties: {
-                productId: { type: 'integer' },
-                productName: { type: 'string' },
-                quantity: { type: 'integer', minimum: 1 },
-                unitPrice: { type: 'number' },
-                discount: { type: 'number' },
-              },
-            },
-          },
-          paymentMethod: { type: 'string' },
-          deliveryAddress: { type: 'string' },
-          notes: { type: 'string' },
-          discount: { type: 'number' },
-        },
-      },
-    },
   }, async (request, reply) => {
-    const result = await container.createOrderHandler.execute(request.body as any);
+    const body = request.body as any;
+    // Normalize field names: frontend sends 'client'/'phone', backend expects 'customerName'/'customerPhone'
+    const normalized = {
+      ...body,
+      customerName: body.customerName || body.client || '',
+      customerPhone: body.customerPhone || body.phone || '',
+      items: body.items || [],
+    };
+
+    if (!normalized.items || normalized.items.length === 0) {
+      return reply.status(400).send({ error: 'Order must have at least one item' });
+    }
+    if (!normalized.customerName) {
+      return reply.status(400).send({ error: 'Customer name is required' });
+    }
+
+    const result = await container.createOrderHandler.execute(normalized);
 
     if (result.isFailure) {
       return reply.status(400).send({ error: result.error });

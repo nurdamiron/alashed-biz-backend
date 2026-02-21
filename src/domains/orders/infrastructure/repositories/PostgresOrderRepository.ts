@@ -134,8 +134,8 @@ export class PostgresOrderRepository implements IOrderRepository {
       // Insert order
       const orderResult = await client.query(
         `INSERT INTO orders (customer_id, employee_id, status, total_amount, discount,
-         payment_method, payment_status, delivery_address, notes, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         payment_method, payment_status, delivery_address, notes, source, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING id`,
         [
           order.customerId,
@@ -147,6 +147,7 @@ export class PostgresOrderRepository implements IOrderRepository {
           order.paymentStatus,
           order.deliveryAddress,
           order.notes,
+          order.source || 'Магазин',
           order.createdAt,
           order.updatedAt,
         ]

@@ -36,15 +36,16 @@ export interface CreateOrderItemDto {
 }
 
 export interface CreateOrderDto {
-  customerId: number;
-  customerName: string;
-  customerPhone: string;
+  customerId?: number;
+  customerName?: string;
+  customerPhone?: string;
   employeeId?: number;
   items: CreateOrderItemDto[];
   paymentMethod?: string;
   deliveryAddress?: string;
   notes?: string;
   discount?: number;
+  source?: string;
 }
 
 export interface UpdateOrderStatusDto {

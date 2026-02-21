@@ -25,6 +25,35 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
         return Result.fail(stockValidation.error!);
       }
 
+      // STEP 1.5: Upsert customer — find by phone or create new
+      let customerId = request.customerId;
+      const customerName = (request as any).customerName || (request as any).client || '';
+      const customerPhone = (request as any).customerPhone || (request as any).phone || '';
+      if (!customerId && customerPhone) {
+        const existing = await query(
+          `SELECT id FROM customers WHERE phone = $1 LIMIT 1`,
+          [customerPhone]
+        );
+        if (existing.rows.length > 0) {
+          customerId = existing.rows[0].id;
+          if (customerName) {
+            await query(`UPDATE customers SET name = $1, updated_at = NOW() WHERE id = $2`, [customerName, customerId]);
+          }
+        } else {
+          const created = await query(
+            `INSERT INTO customers (name, phone) VALUES ($1, $2) RETURNING id`,
+            [customerName || 'Клиент', customerPhone]
+          );
+          customerId = created.rows[0].id;
+        }
+      } else if (!customerId && customerName) {
+        const created = await query(
+          `INSERT INTO customers (name) VALUES ($1) RETURNING id`,
+          [customerName]
+        );
+        customerId = created.rows[0].id;
+      }
+
       // STEP 2: Create order items
       const items = request.items.map((item) =>
         OrderItem.create({
@@ -37,16 +66,18 @@ export class CreateOrderHandler implements UseCase<CreateOrderDto, OrderDto> {
       );
 
       // STEP 3: Create order entity
+      const source = (request as any).source || 'Магазин';
       const order = Order.create({
-        customerId: request.customerId,
-        customerName: request.customerName,
-        customerPhone: request.customerPhone,
+        customerId,
+        customerName,
+        customerPhone,
         employeeId: request.employeeId,
         items,
         paymentMethod: request.paymentMethod,
         deliveryAddress: request.deliveryAddress,
         notes: request.notes,
         discount: request.discount ? Money.create(request.discount) : undefined,
+        source,
       });
 
       // STEP 4: Save order to database

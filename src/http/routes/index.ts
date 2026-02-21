@@ -15,6 +15,7 @@ import { websocketRoutes } from './websocket.routes.js';
 import { uploadRoutes } from './upload.routes.js';
 import { reportsRoutes } from './reports.routes.js';
 import { smsRoutes } from './sms.routes.js';
+import { customersRoutes } from './customers.routes.js';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Health check
@@ -48,6 +49,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     await api.register(uploadRoutes);
     await api.register(reportsRoutes);
     await api.register(smsRoutes);
+    await api.register(customersRoutes);
   }, { prefix: '/api' });
 
   // WebSocket (without /api prefix)
