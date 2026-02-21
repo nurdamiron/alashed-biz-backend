@@ -15,7 +15,7 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
 
       // Get order with items
       const orderResult = await query(
-        `SELECT o.id, o.total, o.status, o.created_at,
+        `SELECT o.id, o.total_amount as total, o.status, o.created_at,
                 c.name as customer_name, c.phone as customer_phone
          FROM orders o
          LEFT JOIN customers c ON o.customer_id = c.id
@@ -78,9 +78,9 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
       // Get summary
       const summaryResult = await query(
         `SELECT
-           COALESCE(SUM(total), 0) as total_revenue,
+           COALESCE(SUM(total_amount), 0) as total_revenue,
            COUNT(*) as total_orders,
-           COALESCE(AVG(total), 0) as avg_order_value
+           COALESCE(AVG(total_amount), 0) as avg_order_value
          FROM orders
          WHERE status NOT IN ('cancelled')
            AND created_at >= $1 AND created_at <= $2`,
@@ -107,7 +107,7 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
       const salesByDayResult = await query(
         `SELECT
            DATE(created_at) as date,
-           COALESCE(SUM(total), 0) as revenue,
+           COALESCE(SUM(total_amount), 0) as revenue,
            COUNT(*) as orders
          FROM orders
          WHERE status NOT IN ('cancelled')
@@ -152,17 +152,19 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
       const { lowStock } = request.query;
 
       let sql = `
-        SELECT id, name, sku, stock_quantity as stock,
-               min_stock_level as min_stock, price, category
-        FROM products
-        WHERE is_active = TRUE
+        SELECT p.id, p.name, p.sku, p.quantity as stock,
+               p.min_stock_level as min_stock, p.price,
+               COALESCE(c.name, '') as category
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.is_active = TRUE
       `;
 
       if (lowStock === 'true') {
-        sql += ' AND stock_quantity <= min_stock_level';
+        sql += ' AND p.quantity <= p.min_stock_level';
       }
 
-      sql += ' ORDER BY stock_quantity ASC';
+      sql += ' ORDER BY p.quantity ASC';
 
       const result = await query(sql);
 
@@ -201,7 +203,7 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
       const to = toDate || new Date().toISOString().split('T')[0];
 
       let sql = `
-        SELECT o.id, o.total, o.status, o.created_at,
+        SELECT o.id, o.total_amount as total, o.status, o.created_at,
                c.name as customer_name, c.phone as customer_phone
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
