@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
@@ -14,6 +15,7 @@ import { initContainer } from './di/container.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
+    trustProxy: true, // Required for correct IP behind Nginx
     logger: config.isDev
       ? {
           level: 'info',
@@ -41,6 +43,11 @@ export async function buildApp(): Promise<FastifyInstance> {
           },
           timestamp: () => `,"time":"${new Date().toISOString()}"`,
         },
+  });
+
+  // Security Headers
+  await app.register(helmet, {
+    contentSecurityPolicy: false, // Managed by Nginx
   });
 
   // CORS

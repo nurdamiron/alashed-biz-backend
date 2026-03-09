@@ -97,7 +97,7 @@ NODE_ENV=production
 
 # Database
 DATABASE_URL=postgresql://alashed:CHANGE_ME_STRONG_PASSWORD@localhost:5432/alashed_biz
-DB_SSL=false
+DB_SSL=true
 
 # JWT
 JWT_SECRET=${JWT_SECRET}

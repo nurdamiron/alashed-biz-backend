@@ -30,7 +30,7 @@ export const config = {
   // CORS
   cors: {
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-    allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(','),
+    allowedOrigins: (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173').split(','),
   },
 
   // AWS
@@ -57,7 +57,14 @@ export const config = {
 
 // Validate required config
 export function validateConfig(): void {
-  const required = ['JWT_SECRET'];
+  const required = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+    'FRONTEND_URL',
+    'VAPID_PUBLIC_KEY',
+    'VAPID_PRIVATE_KEY',
+  ];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0 && !config.isDev) {

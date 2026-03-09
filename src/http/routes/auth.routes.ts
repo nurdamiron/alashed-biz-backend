@@ -9,7 +9,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/auth/login', {
     config: {
       rateLimit: {
-        max: 100, // Increased for testing
+        max: 10,
         timeWindow: '1 minute',
         keyGenerator: (request) => request.ip,
         errorResponseBuilder: () => ({
