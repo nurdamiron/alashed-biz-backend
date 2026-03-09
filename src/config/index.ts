@@ -62,8 +62,6 @@ export function validateConfig(): void {
     'JWT_SECRET',
     'JWT_REFRESH_SECRET',
     'FRONTEND_URL',
-    'VAPID_PUBLIC_KEY',
-    'VAPID_PRIVATE_KEY',
   ];
   const missing = required.filter((key) => !process.env[key]);
 
