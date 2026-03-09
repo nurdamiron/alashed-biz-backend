@@ -6,8 +6,10 @@ let pool: Pool | null = null;
 export function getPool(): Pool {
   if (!pool) {
     const sslConfig = config.database.ssl ? { rejectUnauthorized: false } : false;
-    const connectionConfig = config.database.url
-      ? { connectionString: config.database.url, ssl: sslConfig }
+    // Strip sslmode from URL — pg ignores ssl option when sslmode is in the connection string
+    const dbUrl = config.database.url?.replace(/([?&])sslmode=[^&]*/g, '$1').replace(/[?&]$/, '') ?? undefined;
+    const connectionConfig = dbUrl
+      ? { connectionString: dbUrl, ssl: sslConfig }
       : {
           host: config.database.host,
           port: config.database.port,
