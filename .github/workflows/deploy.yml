@@ -21,8 +21,8 @@ jobs:
 
       - name: Sync to deployment directory
         run: |
-          rsync -a --delete dist/       /home/ubuntu/alashed-biz/dist/
-          rsync -a --delete migrations/ /home/ubuntu/alashed-biz/migrations/
+          rsync -rlptD --delete dist/       /home/ubuntu/alashed-biz/dist/
+          rsync -rlptD --delete migrations/ /home/ubuntu/alashed-biz/migrations/
           cp package.json package-lock.json /home/ubuntu/alashed-biz/
 
       - name: Install production dependencies
@@ -31,10 +31,10 @@ jobs:
 
       - name: Run migrations
         working-directory: /home/ubuntu/alashed-biz
-        run: HOME=/root node dist/scripts/migrate.js
+        run: node dist/scripts/migrate.js
 
       - name: Restart PM2
-        run: sudo /usr/bin/pm2 reload alashed-api && sudo /usr/bin/pm2 save
+        run: sudo /usr/bin/pm2 reload alashed-api --update-env && sudo /usr/bin/pm2 save
 
       - name: Health check
         run: |
