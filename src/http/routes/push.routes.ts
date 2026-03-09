@@ -224,7 +224,7 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
           stats: stats.rows[0],
           recentSubscriptions: recent.rows,
           vapidConfigured: !!c.pushService.getVapidPublicKey(),
-          frontendUrl: process.env.FRONTEND_URL || 'https://alashed-biz-frontend.vercel.app',
+          frontendUrl: process.env.FRONTEND_URL || 'https://biz.alashed.kz',
         });
       } catch (error) {
         console.error('Debug endpoint error:', error);

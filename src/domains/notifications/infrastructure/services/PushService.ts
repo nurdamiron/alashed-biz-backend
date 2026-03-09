@@ -299,7 +299,7 @@ export class PushService {
    */
   private async sendNotification(subscription: PushSubscriptionData, payload: PushPayload): Promise<void> {
     // iOS requires absolute URLs for icons
-    const baseUrl = process.env.FRONTEND_URL || 'https://alashed-biz-frontend.vercel.app';
+    const baseUrl = process.env.FRONTEND_URL || 'https://biz.alashed.kz';
     const defaultIcon = `${baseUrl}/icon-192x192.png`;
 
     const notificationPayload = JSON.stringify({

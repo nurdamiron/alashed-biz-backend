@@ -43,9 +43,9 @@ export async function buildApp(): Promise<FastifyInstance> {
         },
   });
 
-  // CORS - allow all origins for now
+  // CORS
   await app.register(cors, {
-    origin: true,
+    origin: config.isDev ? true : config.cors.allowedOrigins,
     credentials: true,
   });
 
@@ -90,7 +90,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       },
       servers: [
         {
-          url: config.isDev ? `http://localhost:${config.port}` : 'https://api-biz.alashed.kz',
+          url: config.isDev ? `http://localhost:${config.port}` : 'https://api.biz.alashed.kz',
         },
       ],
       components: {
